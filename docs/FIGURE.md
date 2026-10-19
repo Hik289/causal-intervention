@@ -6,20 +6,18 @@ The overview illustrates the full CIVIC-CR research method. A frozen reviewer an
 
 The illustration describes the research formulation. Individual scripts in this repository implement subsets; the illustration is not evidence that every module is available in a single released training entry point.
 
-## Experimental plots
+## Quantitative results
+
+The six former bar charts have been replaced by readable tables, with the same reported numbers and green CIVIC-CR highlights. See the [results tables](RESULTS.md) for matched-pair discrimination, objective ablation, structured equivariance, downstream repair, real-PR filtering, and cross-language validity. Error ranges from the ablation and equivariance charts are preserved in the tables.
+
+The remaining experimental figures show relationships across candidate-pool size or intervention coverage:
 
 | Figure | Evaluation question |
 | :--- | :--- |
-| [Matched-pair discrimination](../assets/figures/matched_pair_discrimination.pdf) | Does one critique score the defective state above its repaired counterpart? |
-| [Objective ablation](../assets/figures/objective_ablation.pdf) | Which losses support intervention discrimination and training stability? |
-| [Structured equivariance](../assets/figures/structured_equivariance.pdf) | Do validity, location, and evidence remain consistent under mapped transformations? |
-| [Downstream repair](../assets/figures/downstream_repair.pdf) | How valuable is accurate guidance to the same frozen repair agent? |
 | [Intervention retrieval](../assets/figures/intervention_retrieval.pdf) | Can the ranker discover the target among cross-example distractors? |
-| [Finding filtering](../assets/figures/finding_filtering.pdf) | Does verification reduce unsupported findings on real pull requests? |
-| [Cross-language transfer](../assets/figures/cross_language_transfer.pdf) | Does a Python intervention verifier generalize to multilingual finding validity? |
 | [Intervention coverage](../assets/figures/intervention_coverage.pdf) | Which finding types admit meaningful target interventions? |
 
-The plots retain reported values, including negative and mixed outcomes. Intervention AUROC measures target-versus-unrelated score effects and differs from bug-versus-safe or finding-validity AUROC. The downstream 40× count ratio compares experimentally supplied precise guidance with false or absent guidance; it does not measure a 40× end-to-end learned-filter gain. Plot exports do not replace the raw artifacts and split manifests required for reproduction.
+Intervention AUROC measures target-versus-unrelated score effects and differs from bug-versus-safe or finding-validity AUROC. The downstream 40× count ratio compares experimentally supplied precise guidance with false or absent guidance. Table exports do not replace the raw artifacts and split manifests required for reproduction.
 
 ## Illustration style and provenance
 

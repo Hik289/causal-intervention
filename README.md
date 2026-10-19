@@ -32,7 +32,7 @@ For a program `x` and a candidate critique `c`, the verifier produces a validity
 
 The key contrast is between `sθ(x,c) − sθ(I_c(x),c)` and the score change under an unrelated intervention. The reviewer, intervention generator, and embedding backbone remain frozen; the full research design jointly trains a critique-conditioned verifier, an intervention ranker, and an evidence-aware review selector. Ranking feedback shapes the verifier representation, and review-selection feedback reaches the verifier and the soft intervention distribution. Individual scripts in this release implement subsets of that design.
 
-The [joint-training pipeline](assets/figures/joint_training_pipeline.pdf) shows the three modules and their learning paths. The [figure guide](docs/FIGURE.md) links all current experimental plots and explains their evaluation scope.
+The [joint-training pipeline](assets/figures/joint_training_pipeline.pdf) shows the three modules and their learning paths. The [figure guide](docs/FIGURE.md) links the current results tables and retained experimental figures and explains their evaluation scope.
 
 A typical failure case is a null-dereference warning on code that already has a dominating null guard. A redundant edit should not become evidence that the original warning was correct. Intervention quality and executable validation are therefore part of the evaluation assumptions.
 
