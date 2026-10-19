@@ -96,6 +96,6 @@ def main():
         out[bname]={"n":len(valid),"auroc":au,"P":m["P"],"R":m["R"],"F1":m["F1"],
                     "FP_per_PR":fppr,"Comments_per_PR":cpr,"FP_per_PR_at_70recall":fpr70}
         print(f"  [{bname}] AUROC {au} P {m['P']} R {m['R']} F1 {m['F1']} FP/PR {fppr} Comments/PR {cpr} FP/PR@70R {fpr70}",flush=True)
-        json.dump(out,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/e1_baselines_result.json','w'),indent=2)
+        json.dump(out,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/finding_baseline_results.json','w'),indent=2)
     print("E1_BASELINES DONE",flush=True)
 if __name__=="__main__": main()

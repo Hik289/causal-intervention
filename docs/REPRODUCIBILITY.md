@@ -16,6 +16,7 @@
 | `cache/bench_aacr_index.jsonl` | Aligned finding metadata and split assignments |
 | `repos_cache/` | Dedicated disposable benchmark clones used by checkout/patch scripts |
 | `data/anchors/` | Prior construction outputs used by historical repair/diagnostic scripts |
+| `outputs/finding_dataset.jsonl` | Finding-validity records written by `tools/build_finding_dataset.py` and read by `scripts/evaluate_finding_thresholds.py` |
 
 Quadruple records used by the diff builder include `quad_id`, `issue_id`, `critique` (text or an object containing `text`), and `I_cprime.from_issue`. Other scripts require additional intervention and localization fields. This table describes observed consumers, not a complete dataset release specification.
 
@@ -26,9 +27,9 @@ No download/preparation pipeline for all these artifacts is included. In particu
 - Shared verifier definitions live in `civic/models.py`; the intervention ranker lives in `civic/ranking.py`.
 - The main verifier combines projected code and critique vectors using a Transformer over two tokens. This is not a token-level code/critique attention model.
 - In `train_civic.py`, the equivariance term is currently zero pending transformed inputs. Its minimality term is computed from frozen input differences and does not train the verifier. The full proposed seven-term objective is not implemented by that entry point.
-- In `quad_eseries.py`, `clsonly` is a historical configuration name: no classification objective is optimized there. With no flip, specificity, or ranking loss, it serves as an untrained control because the remaining input-norm term has no gradient.
+- In `run_objective_ablations.py`, `clsonly` is a historical configuration name: no classification objective is optimized there. With no flip, specificity, or ranking loss, it serves as an untrained control because the remaining input-norm term has no gradient.
 - The diff builder uses changed lines **and diff context**, rather than strictly changed lines alone. For unrelated edits outside the selected file, it reuses the original code representation. This can make specificity easier and must be considered when interpreting results.
-- `e5_eqvset.py` is an exploratory unstable objective; `e5_eqvset_v2.py` is its later variant. Historical variants are retained and should not be treated as independent results.
+- `ablate_equivariance_set_selection_unstable.py` is an exploratory unstable objective; `ablate_equivariance_set_selection.py` is its later variant. Historical variants are retained and should not be treated as independent results.
 - Some scripts perform expensive work at import time. Avoid importing arbitrary experiment modules for discovery.
 - Benchmark-clone scripts reset and clean their working copies. Supply only dedicated disposable clones in `repos_cache/`.
 - Dependency versions are minimums or unpinned. A validated lockfile, hardware manifest, released artifacts, and full end-to-end reproduction are not provided.
@@ -36,3 +37,7 @@ No download/preparation pipeline for all these artifacts is included. In particu
 ## Suggested reporting
 
 Record benchmark versions, intervention acceptance criteria, project splits, random seeds, model/service identifiers, package versions, and compute. Separate finding-validity metrics from intervention-discrimination metrics. Report invalid or no-op intervention rates and scope failures alongside positive findings.
+
+## Artifact naming
+
+Experiment entry points and generated artifacts use descriptive names. The default outputs include `objective_ablation_results.json`, `cross_project_results.json`, `intervention_ranking_results.json`, and `finding_threshold_results.json`. Existing local artifacts from earlier naming conventions must be renamed before dependent commands are rerun. Alternative cross-project/ranking drivers still share the same default result filenames, so preserve results separately when comparing variants. Metric keys retain their existing schema.

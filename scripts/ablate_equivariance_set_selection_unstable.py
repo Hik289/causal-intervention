@@ -80,5 +80,5 @@ for name,ue,us in [("Full (flip+spec+rank+eqv+set)",True,True),("Full - Equivari
     rows=np.array([run(s,ue,us) for s in [42,123,456]])
     out[name]={"pair_auroc":[round(rows[:,0].mean(),4),round(rows[:,0].std(),4)],"flip":round(rows[:,1].mean(),4),"dtarget":round(rows[:,2].mean(),4)}
     print(f"  [{name}] pair_auroc {rows[:,0].mean():.4f}±{rows[:,0].std():.4f} flip {rows[:,1].mean():.3f} dtarget {rows[:,2].mean():.3f}",flush=True)
-json.dump(out,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/e5_eqvset_result.json','w'),indent=2)
+json.dump(out,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/equivariance_set_selection_unstable_results.json','w'),indent=2)
 print("E5_EQVSET DONE",flush=True)

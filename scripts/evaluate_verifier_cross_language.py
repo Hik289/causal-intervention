@@ -65,5 +65,5 @@ if allnp_l: out["_heldout_nonPython_pooled"]={"n":len(allnp_l),"civic_cr_auroc":
 if allp_l: out["_inDomain_Python"]={"n":len(allp_l),"civic_cr_auroc":round(roc_auc_score(allp_l,allp_s),4)}
 print(f"  POOLED non-Python held-out CIVIC-CR AUROC={out.get('_heldout_nonPython_pooled',{}).get('civic_cr_auroc')}",flush=True)
 print(f"  Python in-domain CIVIC-CR AUROC={out.get('_inDomain_Python',{}).get('civic_cr_auroc')}",flush=True)
-json.dump(out,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/e6_civic_lang_result.json','w'),indent=2)
+json.dump(out,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/verifier_cross_language_results.json','w'),indent=2)
 print("E6_CIVIC_LANG DONE",flush=True)

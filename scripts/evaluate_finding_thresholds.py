@@ -9,7 +9,7 @@ from sklearn.metrics import roc_auc_score
 ARTIFACTS=str(OUTPUT_DIR)
 
 def load():
-    rows=[json.loads(l) for l in open(f"{ARTIFACTS}/e1_data.jsonl")]
+    rows=[json.loads(l) for l in open(f"{ARTIFACTS}/finding_dataset.jsonl")]
     rows=[r for r in rows if r.get("s_true") is not None and r.get("s_false") is not None]
     return rows
 
@@ -55,7 +55,7 @@ def bootstrap_fp_pr(F, tau, n=1000, seed=0):
     return [float(np.percentile(vals,2.5)),float(np.percentile(vals,97.5))]
 
 def main():
-    ap=argparse.ArgumentParser(); ap.add_argument("--out",default=f"{ARTIFACTS}/E1_results.json"); args=ap.parse_args()
+    ap=argparse.ArgumentParser(); ap.add_argument("--out",default=f"{ARTIFACTS}/finding_threshold_results.json"); args=ap.parse_args()
     rows=load()
     from collections import Counter
     print("usable rows:",len(rows),"by split:",dict(Counter(r["split"] for r in rows)),flush=True)

@@ -74,5 +74,5 @@ for name,usespec,useranker in [("Embedding Similarity",None,False),("Ranker w/o 
     for K in [4,8,16]:
         arr=np.array(accs[K]); out[name][f"K={K}"]={"top1":round(arr[:,0].mean(),4),"recall5":round(arr[:,1].mean(),4),"mrr":round(arr[:,2].mean(),4)}
     print(f"  [{name}] K4 Top1 {out[name]['K=4']['top1']} K8 {out[name]['K=8']['top1']} K16 {out[name]['K=16']['top1']}",flush=True)
-json.dump(out,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/e7_baselines_result.json','w'),indent=2)
+json.dump(out,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/ranking_baseline_results.json','w'),indent=2)
 print("E7_BASELINES DONE",flush=True)

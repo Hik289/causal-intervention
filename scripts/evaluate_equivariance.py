@@ -92,7 +92,7 @@ def main():
          "dtarget_corr":[round(np.nanmean(corrs),4),round(np.nanstd(corrs),4)],
          "flip_orig":[round(np.mean(fo),4)],"flip_tx":[round(np.mean(ft),4)],
          "fp_change_rate":round(abs(np.mean(fo)-np.mean(ft)),4)}
-    json.dump(out,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/e4_result.json','w'),indent=2)
+    json.dump(out,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/equivariance_results.json','w'),indent=2)
     print(f"E4: verdict_consistency {out['verdict_consistency']} | Δtarget_corr {out['dtarget_corr']} | FP_change {out['fp_change_rate']}",flush=True)
     print("E4 DONE",flush=True)
 

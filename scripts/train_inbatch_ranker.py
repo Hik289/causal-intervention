@@ -62,5 +62,5 @@ for K in [4,8,16]:
     t1=[per[s][K][0] for s in [42,123,456]];r5=[per[s][K][1] for s in [42,123,456]];mr=[per[s][K][2] for s in [42,123,456]]
     out[f"K={K}"]={"top1":[round(np.mean(t1),4),round(np.std(t1),4)],"recall5":[round(np.mean(r5),4),round(np.std(r5),4)],"mrr":[round(np.mean(mr),4),round(np.std(mr),4)],"n_query":per[42][K][3]}
     print(f"  [K={K}] Top-1 {round(np.mean(t1),4)}±{round(np.std(t1),4)} Recall@5 {round(np.mean(r5),4)} MRR {round(np.mean(mr),4)} (vs 原E7 Top1 {'0.230' if K==4 else '0.104' if K==8 else '0.058'})",flush=True)
-json.dump(out,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/e7_inbatch_result.json','w'),indent=2)
+json.dump(out,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/inbatch_ranker_results.json','w'),indent=2)
 print("E7_INBATCH DONE",flush=True)

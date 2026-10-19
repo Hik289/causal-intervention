@@ -44,7 +44,7 @@ def main():
                  "so this discrimination is structurally unavailable to the raw-threshold baseline. "
                  "BUT: on ecologically-valid reviewer-gen, pre-exp showed Δtarget≈Δunrel (reviewer lacks causal specificity). "
                  "So raw reviewer specificity is weak; the question is whether TRAINED upper layer improves it (E5/full train).")
-    json.dump(out,open(f"{ARTIFACTS}/E3_results.json","w"),indent=2)
+    json.dump(out,open(f"{ARTIFACTS}/reviewer_specificity_results.json","w"),indent=2)
     print(json.dumps(out,indent=2),flush=True)
 
 if __name__=="__main__":

@@ -95,7 +95,7 @@ def main():
         random.shuffle(ids); sel+=ids[:args.n_per_split]
     print("selected per split:",{sp:min(len(ids),args.n_per_split) for sp,ids in bysplit.items()},flush=True)
 
-    outp=f"{ARTIFACTS}/e1_data.jsonl"; done=set()
+    outp=f"{ARTIFACTS}/finding_dataset.jsonl"; done=set()
     if os.path.exists(outp):
         for l in open(outp):
             try: done.add(json.loads(l)["issue_id"])

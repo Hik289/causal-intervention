@@ -68,7 +68,7 @@ for K in [4,8,16]:
     nq=per_seed[42][K][3]
     e7[f"K={K}"]={"top1":[round(np.mean(t1),4),round(np.std(t1),4)],"recall5":[round(np.mean(r5),4),round(np.std(r5),4)],"mrr":[round(np.mean(mr),4),round(np.std(mr),4)],"n_query":nq}
     print(f"  [K={K}] Top-1 {round(np.mean(t1),4)}±{round(np.std(t1),4)} Recall@5 {round(np.mean(r5),4)} MRR {round(np.mean(mr),4)} (nq={nq})",flush=True)
-json.dump(e7,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/e7_result.json','w'),indent=2)
+json.dump(e7,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/intervention_ranking_results.json','w'),indent=2)
 print("E7 DONE",flush=True)
 
 print("\n===== E6 Cross-project (leave-project-out) =====",flush=True)
@@ -81,5 +81,5 @@ for held in big:
         m,_=train(trh,s); au,_=pair_auroc(m,teh); aus.append(au)
     e6[held]={"n_test":len(teh),"civic_pair_auroc":[round(np.mean(aus),4),round(np.std(aus),4)]}
     print(f"  [{held}] n_test={len(teh)} CIVIC pair_auroc {round(np.mean(aus),4)}±{round(np.std(aus),4)}",flush=True)
-json.dump(e6,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/e6_result.json','w'),indent=2)
+json.dump(e6,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/cross_project_results.json','w'),indent=2)
 print("E6 DONE\nE6_E7 ALL DONE",flush=True)

@@ -2,7 +2,7 @@ pass
 
 import os
 import sys
-import scripts.quad_eseries as QE
+import scripts.run_objective_ablations as QE
 import numpy as np
 CFG={"flip_only":dict(flip=1.0,spec=0.0,rank=0.0),
      "flip_spec":dict(flip=1.0,spec=0.1,rank=0.0)}

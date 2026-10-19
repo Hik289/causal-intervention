@@ -44,5 +44,5 @@ for held in targets:
         m=train(trh,s); aus.append(pa(m,teh))
     e6[held]={"n_test":len(teh),"n_train":len(trh),"civic_pair_auroc":[round(np.mean(aus),4),round(np.std(aus),4)]}
     print(f"  [{held}] n_test={len(teh)} n_train={len(trh)} CIVIC pair_auroc {round(np.mean(aus),4)}±{round(np.std(aus),4)} (vs base 0.495)",flush=True)
-    json.dump(e6,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/e6_result.json','w'),indent=2)
+    json.dump(e6,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/cross_project_results.json','w'),indent=2)
 print("E6 DONE",flush=True)

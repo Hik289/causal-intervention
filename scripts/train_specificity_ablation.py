@@ -72,7 +72,7 @@ def train_rung(rung, A, idx, seed, epochs=25, lr=3e-4):
 
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument("--seeds",type=int,nargs="+",default=[42,123,456])
-    ap.add_argument("--out",default=f"{ARTIFACTS}/E5_results.json"); args=ap.parse_args()
+    ap.add_argument("--out",default=f"{ARTIFACTS}/specificity_ablation_results.json"); args=ap.parse_args()
     A,idx=load()
     from collections import Counter
     print("quads:",len(idx),"splits:",dict(Counter(r["split"] for r in idx)),flush=True)
@@ -90,7 +90,7 @@ def main():
     res["verdict_note"]=("(a) if R4 SpecRatio & AUROC(Δt,Δu) significantly > R1(raw) & R2(MLP) and drops when L_spec removed (R3). "
                          "(b) if R4 ~ R1/R2. frozen emb=all-MiniLM (weak, see ISOLATE); this tests if trained nonlinear upper+causal loss recovers signal linear probe missed.")
     json.dump(res,open(args.out,"w"),indent=2)
-    print("WROTE E5_results.json",flush=True)
+    print("WROTE specificity_ablation_results.json",flush=True)
 
 if __name__=="__main__":
     from collections import defaultdict

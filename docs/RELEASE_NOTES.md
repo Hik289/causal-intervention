@@ -18,3 +18,9 @@ Full benchmark training, intervention construction, external service calls, and 
 Source code is organized by role: `civic/` contains reusable models, ranking, and workspace paths; `scripts/` contains experiment entry points; `tools/` contains preparation and diagnostic utilities; `env/` contains dependency and environment templates. Cross-module imports use package names instead of modifying the import search path. Generated artifacts now share `outputs/`; prior anchor inputs belong in `data/anchors/`. Existing local artifacts must be moved to those locations before rerunning dependent scripts.
 
 Validation: editable installation succeeded with Python 3.12; all 70 Python files parsed and all local package-import targets resolved; the three verifier architectures and extracted ranker passed forward/backward checks in the available PyTorch environment. Model and ranker syntax trees match their original definitions. Training and baseline help entry points were checked. Full benchmark reproduction was not rerun.
+
+## Descriptive experiment names
+
+Renamed 24 numbered experiment entry points to describe their purpose, including matched-pair evaluation, cross-project transfer, intervention ranking, specificity ablations, finding-threshold evaluation, and downstream repair aggregation. Updated imports, documentation, and 23 generated data/result filenames together. The finding-dataset producer and consumer now share `finding_dataset.jsonl`. Calculations, model definitions, metric keys, and experiment settings are unchanged.
+
+Validation: all 70 Python sources parsed, all local imports and documented entry-point paths resolved, and all 24 installed module names were discoverable. Syntax-tree comparison confirmed only the intended import and filename substitutions. Renamed command help interfaces passed. Full experiments were not rerun for this naming-only change.

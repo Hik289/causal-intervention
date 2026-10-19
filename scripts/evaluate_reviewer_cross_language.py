@@ -55,6 +55,6 @@ def main():
         au_p=round(roc_auc_score([l for _,l in ps],[s for s,_ in ps]),4)
         out["_inDomain_Python"]={"n":len(ps),"frozen_reviewer_auroc":au_p}
         print(f"  [Python in-domain] n={len(ps)} AUROC={au_p}",flush=True)
-    json.dump(out,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/e6_language_result.json','w'),indent=2)
+    json.dump(out,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/reviewer_cross_language_results.json','w'),indent=2)
     print("E6_LANG DONE",flush=True)
 if __name__=="__main__": main()

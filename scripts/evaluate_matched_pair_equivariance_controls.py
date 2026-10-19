@@ -104,5 +104,5 @@ for v,nm in [("mlp","MLP Classifier"),("invariance","Invariance-Only"),("sensiti
     out["E2"][nm]={"posrec":round(e2[:,0].mean(),4),"trap_rej":round(e2[:,1].mean(),4),"pairacc":round(e2[:,2].mean(),4),"auroc":round(e2[:,3].mean(),4),"auprc":round(e2[:,4].mean(),4),"margin":round(e2[:,5].mean(),4)}
     out["E4"][nm]={"verdict_consistency":round(e4[:,0].mean(),4),"evidence_eqv":round(e4[:,1].mean(),4),"fp_change":round(e4[:,2].mean(),4)}
     print(f"  [{nm}] E2 PairAcc {out['E2'][nm]['pairacc']} AUROC {out['E2'][nm]['auroc']} | E4 VC {out['E4'][nm]['verdict_consistency']} corr {out['E4'][nm]['evidence_eqv']}",flush=True)
-json.dump(out,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/e2e4_controls_result.json','w'),indent=2)
+json.dump(out,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/matched_pair_equivariance_control_results.json','w'),indent=2)
 print("E2E4_CONTROLS DONE",flush=True)

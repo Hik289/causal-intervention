@@ -88,7 +88,7 @@ def raw_eval(rows):
 
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument("--seeds",type=int,nargs="+",default=[42,123,456])
-    ap.add_argument("--out",default=f"{ARTIFACTS}/E5_fair_results.json"); args=ap.parse_args()
+    ap.add_argument("--out",default=f"{ARTIFACTS}/score_battery_specificity_results.json"); args=ap.parse_args()
     rows=load()
     from collections import Counter
     print("triples:",len(rows),"splits:",dict(Counter(r["split"] for r in rows)),flush=True)
@@ -105,7 +105,7 @@ def main():
     res["note"]=("FAIR E5: upper layer trained ON LLM intervention battery features (s(x),s(Ic),s(Icp),Δ), NOT MiniLM. "
                  "vs raw-scalar. verdict: B-Full > raw on SpecRatio/AUROC & drops without L_spec → (a); else (b).")
     json.dump(res,open(args.out,"w"),indent=2)
-    print("WROTE E5_fair_results.json",flush=True)
+    print("WROTE score_battery_specificity_results.json",flush=True)
 
 if __name__=="__main__":
     main()

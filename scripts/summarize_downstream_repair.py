@@ -22,7 +22,7 @@ for arm in ['true','false','nocrit']:
 
 res['_mapping']={"CIVIC-CR (targeted/true critregion)":"true","FP finding (misplaced)":"false","No-review (no critique)":"nocrit",
                  "note":"true arm = 精确 finding 引导 repair (CIVIC-CR 低 FP 理想态); false arm = 误报 finding 引导 (高 FP baseline); resolve rate 差 = 减少 FP 的下游价值"}
-json.dump(res,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/e8_result.json','w'),indent=2)
+json.dump(res,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/downstream_repair_results.json','w'),indent=2)
 print(f"\nE8 核心: true(targeted) resolve {res['true']['resolve_rate']} >> false(FP) {res['false']['resolve_rate']} / nocrit {res['nocrit']['resolve_rate']}",flush=True)
 print(f"harmful edit: true {res['true']['harmful_edit_rate']} vs false {res['false']['harmful_edit_rate']} vs nocrit {res['nocrit']['harmful_edit_rate']}",flush=True)
 print("E8 DONE",flush=True)

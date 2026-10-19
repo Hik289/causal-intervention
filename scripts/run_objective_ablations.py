@@ -78,7 +78,7 @@ def main():
         print(f"[{cfg}] Δtarget={agg['dtarget']['mean']:.3f}±{agg['dtarget']['std']:.3f} "
               f"Δunrel={agg['dunrel']['mean']:.3f} spec_ratio={agg['spec_ratio']['mean'] if agg['spec_ratio'] else None} "
               f"flip={agg['flip_rate']['mean']:.2f} pair_auroc={agg['pair_auroc']['mean'] if agg['pair_auroc'] else None}",flush=True)
-    json.dump(out,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/quad_eseries_result.json','w'),indent=2)
+    json.dump(out,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/objective_ablation_results.json','w'),indent=2)
     print("QUAD_ESERIES DONE",flush=True)
 
 if __name__=="__main__": main()

@@ -63,5 +63,5 @@ for K in [4,8,16]:
     rand=1.0/(K+1)
     out[f"K={K}"]={"top1":[round(np.mean(t1),4),round(np.std(t1),4)],"recall5":[round(np.mean(r5),4),round(np.std(r5),4)],"mrr":[round(np.mean(mr),4),round(np.std(mr),4)],"random_top1":round(rand,4),"n_query":per[42][K][3]}
     print(f"  [K={K}] Top-1 {round(np.mean(t1),4)}±{round(np.std(t1),4)} (random {rand:.3f}) Recall@5 {round(np.mean(r5),4)} MRR {round(np.mean(mr),4)}",flush=True)
-json.dump(out,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/e7_cond_result.json','w'),indent=2)
+json.dump(out,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/conditional_ranker_results.json','w'),indent=2)
 print("E7_COND DONE",flush=True)

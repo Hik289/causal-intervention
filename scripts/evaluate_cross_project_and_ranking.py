@@ -59,7 +59,7 @@ for held in big:
     e6[held]={"n_test":len(te),"civic_pair_auroc":[round(np.mean(aus),4),round(np.std(aus),4)],
               "base_pair_auroc":[round(np.mean(base_aus),4),round(np.std(base_aus),4)]}
     print(f"  [{held}] n_test={len(te)} CIVIC {round(np.mean(aus),4)}±{round(np.std(aus),4)} | base {round(np.mean(base_aus),4)}",flush=True)
-json.dump(e6,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/e6_result.json','w'),indent=2)
+json.dump(e6,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/cross_project_results.json','w'),indent=2)
 print("E6 DONE",flush=True)
 
 print("\n===== E7 Intervention Ranking =====",flush=True)
@@ -91,6 +91,6 @@ for K in [4,8,16]:
                   "recall5":[round(np.mean(recall5),4),round(np.std(recall5),4)],
                   "mrr":[round(np.mean(mrr),4),round(np.std(mrr),4)],"n_query":nq}
     print(f"  [K={K}] Top-1 {round(np.mean(top1),4)}±{round(np.std(top1),4)} | Recall@5 {round(np.mean(recall5),4)} | MRR {round(np.mean(mrr),4)} (nq={nq})",flush=True)
-json.dump(e7,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/e7_result.json','w'),indent=2)
+json.dump(e7,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/intervention_ranking_results.json','w'),indent=2)
 print("E7 DONE",flush=True)
 print("E6_E7 ALL DONE",flush=True)

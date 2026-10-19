@@ -50,12 +50,17 @@ outputs/       Generated experiment artifacts (ignored by Git)
 | :--- | :--- |
 | `civic/models.py` | MLP, bilinear, and Transformer-based verifier definitions |
 | `tools/build_emb_diff.py` | Build aligned code/critique embeddings from intervention data |
+| `tools/build_finding_dataset.py`, `scripts/evaluate_finding_thresholds.py` | Construct finding-validity data and evaluate score thresholds |
 | `scripts/train_civic.py` | Joint classification, sensitivity, specificity, and ranking training |
-| `scripts/quad_eseries.py` | Five intervention-objective configurations across three seeds |
-| `scripts/frozen_reviewer_baseline.py` | Frozen LLM reviewer evaluation |
-| `scripts/e4_equivariance.py`, `scripts/e4_loc.py` | Transformation and localization evaluations |
-| `scripts/e6_min.py` | Leave-project-out evaluation |
-| `scripts/spike_repair.py`, `scripts/e8_downstream.py` | Repair harness and downstream aggregation |
+| `scripts/run_objective_ablations.py` | Five intervention-objective configurations across three seeds |
+| `scripts/frozen_reviewer_baseline.py`, `scripts/evaluate_finding_baselines.py` | Frozen reviewer and finding-verification baselines |
+| `scripts/evaluate_matched_pairs.py` | Discriminate defective code from its matched repaired counterpart |
+| `scripts/train_specificity_ablation.py`, `scripts/train_score_battery_specificity.py` | Compare specificity objectives using embeddings or reviewer-score features |
+| `scripts/evaluate_equivariance.py`, `scripts/evaluate_localization_equivariance.py` | Transformation and localization evaluations |
+| `scripts/evaluate_cross_project_small.py` | Leave-project-out evaluation |
+| `scripts/evaluate_reviewer_cross_language.py`, `scripts/evaluate_verifier_cross_language.py` | Cross-language evaluation of reviewer and verifier |
+| `scripts/evaluate_ranking_baselines.py` | Intervention-ranking baselines |
+| `scripts/spike_repair.py`, `scripts/summarize_downstream_repair.py` | Repair harness and downstream aggregation |
 
 ## Getting started
 
@@ -79,7 +84,7 @@ With those artifacts prepared:
 python -m tools.build_emb_diff
 python -m tools.embed_benchmarks --bench aacr
 python -m scripts.train_civic --seed 42
-python -m scripts.quad_eseries
+python -m scripts.run_objective_ablations
 ```
 
 ### Optional model services

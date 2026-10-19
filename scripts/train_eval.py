@@ -68,7 +68,7 @@ def main():
     ap=argparse.ArgumentParser()
     ap.add_argument("--emb",default=os.path.join(CACHE,"emb_full"))
     ap.add_argument("--seeds",type=int,nargs="+",default=[42,123,456])
-    ap.add_argument("--out",default=os.path.join(OUT,"E2_results.json"))
+    ap.add_argument("--out",default=os.path.join(OUT,"matched_pair_training_results.json"))
     args=ap.parse_args()
     A,idx=load(args.emb)
     print(f"loaded {len(idx)} quads, dim={A['crit'].shape[1]}",flush=True)

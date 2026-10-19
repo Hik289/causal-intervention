@@ -41,5 +41,5 @@ for name,um in [("full_with_min",True),("minus_minimality",False)]:
         au,fl,dt=run(s,um); aus.append(au);fls.append(fl);dts.append(dt)
     out[name]={"pair_auroc":[round(np.mean(aus),4),round(np.std(aus),4)],"flip":[round(np.mean(fls),4)],"dtarget":[round(np.mean(dts),4)]}
     print(f"  [{name}] pair_auroc {round(np.mean(aus),4)}±{round(np.std(aus),4)} flip {round(np.mean(fls),4)} dtarget {round(np.mean(dts),4)}",flush=True)
-json.dump(out,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/e5_nomin_result.json','w'),indent=2)
+json.dump(out,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/minimality_loss_ablation_results.json','w'),indent=2)
 print("E5_NOMIN DONE",flush=True)

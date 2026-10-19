@@ -51,5 +51,5 @@ for name,w in CONF.items():
                "pairacc":[round(mean[2],4),round(std[2],4)],"auroc":[round(mean[3],4),round(std[3],4)],
                "auprc":[round(mean[4],4),round(std[4],4)],"mean_pair_margin":[round(mean[5],4),round(std[5],4)]}
     print(f"  [{name}] PosRecall {mean[0]:.3f} TrapRej {mean[1]:.3f} PairAcc {mean[2]:.3f} AUROC {mean[3]:.3f} AUPRC {mean[4]:.3f} Margin {mean[5]:.3f}",flush=True)
-json.dump(out,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/e2_complete_result.json','w'),indent=2)
+json.dump(out,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/matched_pair_results.json','w'),indent=2)
 print("E2_COMPLETE DONE",flush=True)

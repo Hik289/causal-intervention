@@ -76,6 +76,6 @@ def main():
     out={"CIVIC-CR":{"LocEqv":[round(rows[:,0].mean(),4),round(rows[:,0].std(),4)],
                      "EvidenceEqv":[round(rows[:,1].mean(),4),round(rows[:,1].std(),4)],"n_test":len(te)}}
     print(f"  CIVIC-CR LocEqv {rows[:,0].mean():.4f}±{rows[:,0].std():.4f} EvidenceEqv {rows[:,1].mean():.4f}±{rows[:,1].std():.4f}",flush=True)
-    json.dump(out,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/e4_loc_result.json','w'),indent=2)
+    json.dump(out,open(os.environ.get('CIVIC_PROJECT_ROOT', '.') + '/outputs/localization_equivariance_results.json','w'),indent=2)
     print("E4_LOC DONE",flush=True)
 if __name__=="__main__": main()
