@@ -21,3 +21,6 @@ wandb/
 *.pth
 *_result*.json
 *_scores.jsonl
+*.egg-info/
+build/
+dist/

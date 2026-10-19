@@ -2,7 +2,7 @@
 
 ## Required external artifacts
 
-`CIVIC_PROJECT_ROOT` is a workspace containing `data/`, `cache/`, the three phase directories, and optional `repos_cache/` and `experiments/preexp_anchor0/`. Its default is the current working directory. Run commands from the repository root, or prepare the same layout at the configured path.
+`CIVIC_PROJECT_ROOT` is a workspace containing `data/`, `cache/`, `outputs/`, and optional `repos_cache/`. Its default is the current working directory. Install the package with `pip install -e .` and run commands with `python -m scripts.<name>` or `python -m tools.<name>`. `CIVIC_PROJECT_ROOT` controls data and output locations independently of installed source code. The output directory is created automatically.
 
 | Input | Used by |
 | --- | --- |
@@ -15,7 +15,7 @@
 | `cache/bench_aacr_emb.npz` | Finding arrays named `code`, `crit`, `labels` |
 | `cache/bench_aacr_index.jsonl` | Aligned finding metadata and split assignments |
 | `repos_cache/` | Dedicated disposable benchmark clones used by checkout/patch scripts |
-| `experiments/preexp_anchor0/` | Prior construction outputs used by historical repair/diagnostic scripts |
+| `data/anchors/` | Prior construction outputs used by historical repair/diagnostic scripts |
 
 Quadruple records used by the diff builder include `quad_id`, `issue_id`, `critique` (text or an object containing `text`), and `I_cprime.from_issue`. Other scripts require additional intervention and localization fields. This table describes observed consumers, not a complete dataset release specification.
 
@@ -23,7 +23,7 @@ No download/preparation pipeline for all these artifacts is included. In particu
 
 ## Implementation boundaries
 
-- Shared verifier definitions live in `phaseC/model.py`; there is no `phaseF/model.py`.
+- Shared verifier definitions live in `civic/models.py`; the intervention ranker lives in `civic/ranking.py`.
 - The main verifier combines projected code and critique vectors using a Transformer over two tokens. This is not a token-level code/critique attention model.
 - In `train_civic.py`, the equivariance term is currently zero pending transformed inputs. Its minimality term is computed from frozen input differences and does not train the verifier. The full proposed seven-term objective is not implemented by that entry point.
 - In `quad_eseries.py`, `clsonly` is a historical configuration name: no classification objective is optimized there. With no flip, specificity, or ranking loss, it serves as an untrained control because the remaining input-norm term has no gradient.

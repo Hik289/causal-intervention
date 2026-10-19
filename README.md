@@ -37,23 +37,25 @@ A typical failure case is a null-dereference warning on code that already has a 
 ## Code
 
 ```text
-phaseC/        Frozen embeddings, shared verifier models, early baselines and diagnostics
-phaseE/        Critique construction, three-arm repair harness, executable checks
-phaseF/        Main training, ablations, generalization and benchmark experiments
+civic/         Importable verifier models, intervention ranker, and workspace paths
+scripts/       Training, evaluations, ablations, and repair experiments
+tools/         Data preparation, embeddings, diagnostics, and service checks
+env/           Dependency requirements and credential-free environment example
 assets/        Method overview
-docs/         Reproducibility and release notes
+docs/          Reproducibility and release notes
+outputs/       Generated experiment artifacts (ignored by Git)
 ```
 
 | Entry point | Purpose |
 | :--- | :--- |
-| `phaseC/model.py` | MLP, bilinear, and Transformer-based verifier definitions |
-| `phaseF/build_emb_diff.py` | Build aligned code/critique embeddings from intervention data |
-| `phaseF/train_civic.py` | Joint classification, sensitivity, specificity, and ranking training |
-| `phaseF/quad_eseries.py` | Five intervention-objective configurations across three seeds |
-| `phaseF/frozen_reviewer_baseline.py` | Frozen LLM reviewer evaluation |
-| `phaseF/e4_equivariance.py`, `phaseF/e4_loc.py` | Transformation and localization evaluations |
-| `phaseF/e6_min.py` | Leave-project-out evaluation |
-| `phaseE/spike_repair.py`, `phaseF/e8_downstream.py` | Repair harness and downstream aggregation |
+| `civic/models.py` | MLP, bilinear, and Transformer-based verifier definitions |
+| `tools/build_emb_diff.py` | Build aligned code/critique embeddings from intervention data |
+| `scripts/train_civic.py` | Joint classification, sensitivity, specificity, and ranking training |
+| `scripts/quad_eseries.py` | Five intervention-objective configurations across three seeds |
+| `scripts/frozen_reviewer_baseline.py` | Frozen LLM reviewer evaluation |
+| `scripts/e4_equivariance.py`, `scripts/e4_loc.py` | Transformation and localization evaluations |
+| `scripts/e6_min.py` | Leave-project-out evaluation |
+| `scripts/spike_repair.py`, `scripts/e8_downstream.py` | Repair harness and downstream aggregation |
 
 ## Getting started
 
@@ -63,9 +65,10 @@ Use Python 3.10 or newer. Run commands from the repository root.
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+pip install -e .
 export CIVIC_PROJECT_ROOT="$PWD"
-mkdir -p cache data repos_cache experiments/preexp_anchor0
-python phaseF/train_civic.py --help
+mkdir -p cache data/anchors repos_cache outputs
+python -m scripts.train_civic --help
 ```
 
 The training scripts require external benchmark data and precomputed artifacts. **This checkout does not include datasets, intervention quadruples, split manifests, embeddings, checkpoints, or experimental outputs.** Installation alone is insufficient to reproduce the experiments. See [the required inputs and known limitations](docs/REPRODUCIBILITY.md).
@@ -73,15 +76,15 @@ The training scripts require external benchmark data and precomputed artifacts. 
 With those artifacts prepared:
 
 ```bash
-python phaseF/build_emb_diff.py
-python phaseF/embed_benchmarks.py --bench aacr
-python phaseF/train_civic.py --seed 42
-python phaseF/quad_eseries.py
+python -m tools.build_emb_diff
+python -m tools.embed_benchmarks --bench aacr
+python -m scripts.train_civic --seed 42
+python -m scripts.quad_eseries
 ```
 
 ### Optional model services
 
-Embedding and verifier training can run locally with downloaded backbone weights. LLM-based construction and review scripts additionally require your own service credentials. The variable names are listed in [.env.example](.env.example); scripts read the process environment and do not automatically load that file. Set `OPENAI_BASE_URL` and `OPENAI_API_KEY` for OpenAI-compatible calls, or `ANTHROPIC_BASE_URL` and `ANTHROPIC_API_KEY` for Anthropic calls. Azure embedding experiments use their own endpoint and key variables.
+Embedding and verifier training can run locally with downloaded backbone weights. LLM-based construction and review scripts additionally require your own service credentials. The variable names are listed in [env/.env.example](env/.env.example); scripts read the process environment and do not automatically load that file. Set `OPENAI_BASE_URL` and `OPENAI_API_KEY` for OpenAI-compatible calls, or `ANTHROPIC_BASE_URL` and `ANTHROPIC_API_KEY` for Anthropic calls. Azure embedding experiments use their own endpoint and key variables.
 
 Some historical scripts select fixed model identifiers or service-specific API methods. Check the selected script and your provider's support before a paid run. Repair experiments also require Docker, benchmark images, and suitable compute.
 

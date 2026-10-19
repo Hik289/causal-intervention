@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "civic-cr"
+version = "0.1.0"
+description = "Causal intervention verification for code-review critique reliability"
+requires-python = ">=3.10"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["civic*", "scripts*", "tools*"]
