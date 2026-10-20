@@ -24,3 +24,14 @@ wandb/
 *.egg-info/
 build/
 dist/
+assets/
+docs/
+*.tex
+*.bib
+*.bbl
+*.bst
+*.cls
+*.sty
+*.pdf
+*.zip
+.latex-build/

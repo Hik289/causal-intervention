@@ -1,72 +1,19 @@
-<div align="center">
-
 # CIVIC-CR
 
-### Causal Intervention Verification for Critique Reliability in Code Review
+Python code for verifying code-review findings with program interventions. The package provides verifier models and intervention ranking, with scripts for data preparation, training, evaluation, ablations, and repair experiments.
 
-**Does a review critique track the defect it claims to identify?**
-
-[Method](#method) · [Code](#code) · [Getting started](#getting-started) · [Reproducibility](docs/REPRODUCIBILITY.md)
-
-![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)
-![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-EE4C2C?logo=pytorch&logoColor=white)
-![Status](https://img.shields.io/badge/status-research%20code-8574B5)
-
-</div>
-
-![CIVIC-CR method overview](assets/overview.png)
-
-CIVIC-CR studies verification of AI-generated code-review findings through **critique-conditioned program interventions**. A convincing explanation alone does not establish that a defect exists. We instead ask whether a finding responds to changes in the specific mechanism it alleges.
-
-The repository contains research scripts for frozen embeddings, lightweight verification, intervention ranking, controlled evaluations, and downstream repair experiments. The figure illustrates the research design; individual scripts implement subsets of it. No conference acceptance, released paper, or fully reproduced result is claimed here.
-
-## Method
-
-For a program `x` and a candidate critique `c`, the verifier produces a validity score `sθ(x, c)`. Three complementary checks characterize the intended behavior:
-
-| Check | Intervention | Expected response |
-| :--- | :--- | :--- |
-| Target sensitivity | Repair the defect claimed by `c` | The critique's validity decreases |
-| Causal specificity | Repair an unrelated mechanism | The critique's validity stays stable |
-| Structured equivariance | Apply a behavior-preserving transformation | Validity stays stable; location and evidence move consistently |
-
-The key contrast is between `sθ(x,c) − sθ(I_c(x),c)` and the score change under an unrelated intervention. The reviewer, intervention generator, and embedding backbone remain frozen; the full research design jointly trains a critique-conditioned verifier, an intervention ranker, and an evidence-aware review selector. Ranking feedback shapes the verifier representation, and review-selection feedback reaches the verifier and the soft intervention distribution. Individual scripts in this release implement subsets of that design.
-
-The [joint-training pipeline](assets/figures/joint_training_pipeline.pdf) shows the three modules and their learning paths. The [figure guide](docs/FIGURE.md) links the current results tables and retained experimental figures and explains their evaluation scope.
-
-A typical failure case is a null-dereference warning on code that already has a dominating null guard. A redundant edit should not become evidence that the original warning was correct. Intervention quality and executable validation are therefore part of the evaluation assumptions.
-
-## Code
+## Repository layout
 
 ```text
 civic/         Importable verifier models, intervention ranker, and workspace paths
-scripts/       Training, evaluations, ablations, and repair experiments
+scripts/       Training, evaluation, ablation, and repair entry points
 tools/         Data preparation, embeddings, diagnostics, and service checks
-env/           Dependency requirements and credential-free environment example
-assets/        Method overview and paper figure exports
-docs/          Reproducibility and release notes
-outputs/       Generated experiment artifacts (ignored by Git)
+env/           Dependency requirements and an empty credential template
 ```
 
-| Entry point | Purpose |
-| :--- | :--- |
-| `civic/models.py` | MLP, bilinear, and Transformer-based verifier definitions |
-| `tools/build_emb_diff.py` | Build aligned code/critique embeddings from intervention data |
-| `tools/build_finding_dataset.py`, `scripts/evaluate_finding_thresholds.py` | Construct finding-validity data and evaluate score thresholds |
-| `scripts/train_civic.py` | Joint classification, sensitivity, specificity, and ranking training |
-| `scripts/run_objective_ablations.py` | Five intervention-objective configurations across three seeds |
-| `scripts/frozen_reviewer_baseline.py`, `scripts/evaluate_finding_baselines.py` | Frozen reviewer and finding-verification baselines |
-| `scripts/evaluate_matched_pairs.py` | Discriminate defective code from its matched repaired counterpart |
-| `scripts/train_specificity_ablation.py`, `scripts/train_score_battery_specificity.py` | Compare specificity objectives using embeddings or reviewer-score features |
-| `scripts/evaluate_equivariance.py`, `scripts/evaluate_localization_equivariance.py` | Transformation and localization evaluations |
-| `scripts/evaluate_cross_project_small.py` | Leave-project-out evaluation |
-| `scripts/evaluate_reviewer_cross_language.py`, `scripts/evaluate_verifier_cross_language.py` | Cross-language evaluation of reviewer and verifier |
-| `scripts/evaluate_ranking_baselines.py` | Intervention-ranking baselines |
-| `scripts/spike_repair.py`, `scripts/summarize_downstream_repair.py` | Repair harness and downstream aggregation |
+## Installation
 
-## Getting started
-
-Use Python 3.10 or newer. Run commands from the repository root.
+Use Python 3.10 or newer and run commands from the repository root.
 
 ```bash
 python -m venv .venv
@@ -78,29 +25,62 @@ mkdir -p cache data/anchors repos_cache outputs
 python -m scripts.train_civic --help
 ```
 
-The training scripts require external benchmark data and precomputed artifacts. **This checkout does not include datasets, intervention quadruples, split manifests, embeddings, checkpoints, or experimental outputs.** Installation alone is insufficient to reproduce the experiments. See [the required inputs and known limitations](docs/REPRODUCIBILITY.md).
+`CIVIC_PROJECT_ROOT` selects the workspace containing data, caches, and outputs; it defaults to the current directory. Generated artifacts are ignored by Git.
 
-With those artifacts prepared:
+## Entry points
 
-```bash
-python -m tools.build_emb_diff
-python -m tools.embed_benchmarks --bench aacr
-python -m scripts.train_civic --seed 42
-python -m scripts.run_objective_ablations
-```
+| Entry point | Purpose |
+| --- | --- |
+| `civic/models.py` | MLP, bilinear, and Transformer verifier definitions |
+| `civic/ranking.py` | Intervention ranker |
+| `tools/build_emb_diff.py` | Build aligned code and critique embeddings |
+| `tools/build_finding_dataset.py` | Construct finding-validity records |
+| `scripts/train_civic.py` | Train a verifier and intervention ranker |
+| `scripts/run_objective_ablations.py` | Run objective configurations across seeds |
+| `scripts/evaluate_finding_baselines.py` | Evaluate finding-verification baselines |
+| `scripts/evaluate_finding_thresholds.py` | Evaluate finding score thresholds |
+| `scripts/evaluate_matched_pairs.py` | Evaluate defective and repaired code pairs |
+| `scripts/evaluate_equivariance.py` | Evaluate transformation consistency |
+| `scripts/evaluate_localization_equivariance.py` | Evaluate localization consistency |
+| `scripts/evaluate_cross_project_small.py` | Run leave-project-out evaluation |
+| `scripts/evaluate_reviewer_cross_language.py` | Evaluate reviewer transfer across languages |
+| `scripts/evaluate_verifier_cross_language.py` | Evaluate verifier transfer across languages |
+| `scripts/evaluate_ranking_baselines.py` | Evaluate intervention ranking |
+| `scripts/spike_repair.py` | Run the repair harness |
+| `scripts/summarize_downstream_repair.py` | Aggregate repair outputs |
 
-### Optional model services
+Run entry points as `python -m scripts.<name>` or `python -m tools.<name>`.
 
-Embedding and verifier training can run locally with downloaded backbone weights. LLM-based construction and review scripts additionally require your own service credentials. The variable names are listed in [env/.env.example](env/.env.example); scripts read the process environment and do not automatically load that file. Set `OPENAI_BASE_URL` and `OPENAI_API_KEY` for OpenAI-compatible calls, or `ANTHROPIC_BASE_URL` and `ANTHROPIC_API_KEY` for Anthropic calls. Azure embedding experiments use their own endpoint and key variables.
+## Required inputs
 
-Some historical scripts select fixed model identifiers or service-specific API methods. Check the selected script and your provider's support before a paid run. Repair experiments also require Docker, benchmark images, and suitable compute.
+Datasets, intervention records, split manifests, embeddings, checkpoints, and experimental outputs must be prepared separately. The repository does not include a complete download and preparation pipeline.
 
-## Evaluation scope
+| Input path | Consumer |
+| --- | --- |
+| `data/intervention_dataset/quadruples_final.jsonl` | Intervention embedding and transformation scripts |
+| `data/swe-review-bench_raw/data/*.parquet` | Patch lookup and executable experiments |
+| `cache/embfix_index.jsonl` | Existing aligned index and split assignments used by the diff builder |
+| `cache/embdiff_arrays.npz` | Training arrays named `cx`, `cic`, `cicp`, and `crit` |
+| `cache/embdiff_index.jsonl` | Aligned metadata with `quad_id`, `issue_id`, `repo`, and `split` |
+| `data/aacr-bench_raw/dataset.json` | Benchmark embedding builder |
+| `cache/bench_aacr_emb.npz` | Finding arrays named `code`, `crit`, and `labels` |
+| `cache/bench_aacr_index.jsonl` | Finding metadata and split assignments |
+| `repos_cache/` | Dedicated disposable benchmark clones |
+| `data/anchors/` | Construction outputs used by repair and diagnostic scripts |
+| `outputs/finding_dataset.jsonl` | Output of the finding builder and input to threshold evaluation |
 
-The research questions cover false positives at matched defect recall, target-versus-unrelated intervention discrimination, transformation consistency, generalization, intervention ranking, and downstream repair utility. Pair AUROC measures intervention discrimination; it is not interchangeable with finding-validity AUROC.
+Check the selected script for its required fields. The diff builder inherits existing split assignments; it does not create or validate the original project split.
 
-Causal evidence depends on an intervention actually removing the alleged defect without introducing confounding changes. Subjective review comments and unfixable findings may not support this test. The repository retains exploratory and negative-result scripts; no performance table is published without accompanying artifacts.
+## Optional model services
 
-## Release notes
+Local embedding and verifier runs require downloaded backbone weights. Scripts that call model services require your own credentials. [env/.env.example](env/.env.example) lists supported variables without credentials. Set variables in the process environment; scripts do not load this file automatically. Some scripts use fixed model identifiers or service-specific methods. Repair experiments also require Docker and benchmark images.
 
-See [release validation](docs/RELEASE_NOTES.md) for the checks performed and [reproducibility](docs/REPRODUCIBILITY.md) for implementation caveats. This repository currently has no license grant; redistribution and reuse permissions require clarification from the rights holder. Third-party benchmarks and model weights retain their own terms.
+## Implementation notes
+
+- `scripts/train_civic.py` trains the verifier and ranker. Its equivariance term is currently zero, and its minimality term uses frozen input differences without training the verifier.
+- The main verifier attends over two projected embedding tokens rather than source-code tokens.
+- In `scripts/run_objective_ablations.py`, the historical `clsonly` configuration is an untrained control; it does not optimize a classification loss.
+- The diff builder includes diff context and reuses the original representation when an unrelated edit falls outside the selected file.
+- Some experiment modules perform expensive work at import time. Run selected entry points directly.
+- Checkout and patch scripts reset and clean their benchmark clones. Use dedicated disposable clones in `repos_cache/`.
+- Dependencies are not fully pinned, and a validated end-to-end reproduction environment is not included.
