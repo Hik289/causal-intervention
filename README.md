@@ -3,11 +3,11 @@
 <p align="center"><strong>Causal Intervention Verification for Reliable Code Review</strong></p>
 
 <p align="center">
-  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-code-3776AB?logo=python&amp;logoColor=white" alt="Python"></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&amp;logoColor=white" alt="Python 3.10+"></a>
   <a href="https://pytorch.org/"><img src="https://img.shields.io/badge/PyTorch-training-EE4C2C?logo=pytorch&amp;logoColor=white" alt="PyTorch"></a>
 </p>
 
-CIVER verifies a code-review critique by examining what changes when its claimed defect is repaired. It compares targeted interventions with unrelated modifications and semantics-preserving transformations, then selects valid, nonredundant findings.
+CIVER checks whether a code-review critique identifies a real defect by comparing its validity score across controlled program changes. Removing the claimed defect should lower the score, while unrelated edits and semantics-preserving transformations should leave it stable. Three jointly trained modules rank candidate interventions, score the same critique across program states, and combine these responses to verify critiques and select nonredundant findings.
 
 ![CIVER framework](assets/civic_pipeline.png)
 
