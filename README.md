@@ -1,9 +1,11 @@
-# CIVER
+<h1 align="center">CIVER</h1>
 
-**Causal Intervention Verification for Reliable Code Review**
+<p align="center"><strong>Causal Intervention Verification for Reliable Code Review</strong></p>
 
-[![Python](https://img.shields.io/badge/Python-code-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![PyTorch](https://img.shields.io/badge/PyTorch-training-EE4C2C?logo=pytorch&logoColor=white)](https://pytorch.org/)
+<p align="center">
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-code-3776AB?logo=python&amp;logoColor=white" alt="Python"></a>
+  <a href="https://pytorch.org/"><img src="https://img.shields.io/badge/PyTorch-training-EE4C2C?logo=pytorch&amp;logoColor=white" alt="PyTorch"></a>
+</p>
 
 CIVER verifies a code-review critique by examining what changes when its claimed defect is repaired. It compares targeted interventions with unrelated modifications and semantics-preserving transformations, then selects valid, nonredundant findings.
 
@@ -103,12 +105,6 @@ tests/       Offline checks of gradients, objectives, selection, and training
 | `scripts/evaluate_repair_controls.py` | Controlled downstream repair experiments. |
 
 The `civic` import namespace and original training and evaluation workflows remain available. The original verifier–ranker trainer retains its historical behavior; use `train_joint` for the complete three-module objectives described above.
-
-## Data and optional services
-
-Benchmark datasets, intervention records, split manifests, frozen representations, and checkpoints are prepared separately. Existing experiments use workspace-relative paths under `data/`, `cache/`, `repos_cache/`, and `outputs/`; `CIVIC_PROJECT_ROOT` selects that workspace. Executable repair experiments also require their benchmark containers. Use disposable clones for checkout and patch experiments.
-
-Optional service adapters read credentials, endpoints, model identifiers, and request settings from the local process environment. The empty template is in `env/.env.example`; scripts do not load it automatically. No service credentials or concrete model choices are supplied by the repository. Frozen-feature training runs without a service connection.
 
 ## Verification
 
