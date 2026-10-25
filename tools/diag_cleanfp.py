@@ -1,3 +1,5 @@
+from civic.services import review_score_path
+from civic.services import message_client, message_options, review_model
 from civic.paths import OUTPUT_DIR
 pass
 
@@ -10,9 +12,9 @@ from sklearn.metrics import roc_auc_score
 random.seed(42)
 PRE=os.environ.get("CIVIC_PROJECT_ROOT", ".") + "/data/anchors"; ARTIFACTS=str(OUTPUT_DIR)
 
-def anth(timeout=90):
-    import anthropic
-    return anthropic.Anthropic(base_url=os.environ["ANTHROPIC_BASE_URL"],api_key=os.environ["ANTHROPIC_API_KEY"],max_retries=6,timeout=timeout)
+def provider_client(timeout=90):
+
+    return message_client()
 
 FALSE_SYS=("You are constructing a HARD test case for a code-review verifier. Given a code snippet, write ONE "
  "plausible-sounding review comment that claims a SPECIFIC defect which does NOT actually exist in this code. "
@@ -21,15 +23,13 @@ FALSE_SYS=("You are constructing a HARD test case for a code-review verifier. Gi
  "It must sound technically credible to a reviewer skimming the code, but be FALSE for THIS specific code. "
  "Do NOT describe a real bug. Output ONLY the review comment (1-3 sentences).")
 def gen_false(code):
-    r=anth(90).messages.create(model="claude-sonnet-4-6",max_tokens=200,temperature=0.6,system=FALSE_SYS,
-        messages=[{"role":"user","content":f"CODE:\n{code[:6000]}\n\nPlausible-but-FALSE defect critique:"}])
+    r=provider_client(90).messages.create(model=review_model(), system=FALSE_SYS, messages=[{'role': 'user', 'content': f'CODE:\n{code[:6000]}\n\nPlausible-but-FALSE defect critique:'}], **message_options())
     return r.content[0].text.strip()
 
 RUBRIC=("You are an expert code reviewer. Judge ONLY whether the specific defect described in the critique is "
  "actually present in THIS code as shown. Output 'SCORE: <int 0-100>' (confidence defect present) then 'REASON: <text>'.")
 def score(code,crit):
-    r=anth().messages.create(model="claude-sonnet-4-6",max_tokens=180,temperature=0.4,system=RUBRIC,
-        messages=[{"role":"user","content":f"CRITIQUE:\n{crit}\n\nCODE:\n{code[:6000]}\n\nIs the defect present in THIS code?"}])
+    r=provider_client().messages.create(model=review_model(), system=RUBRIC, messages=[{'role': 'user', 'content': f'CRITIQUE:\n{crit}\n\nCODE:\n{code[:6000]}\n\nIs the defect present in THIS code?'}], **message_options())
     return r.content[0].text
 def parse(txt):
     m=re.search(r'SCORE:\s*(\d+)',txt or "",re.I)
@@ -41,7 +41,7 @@ def main():
     blob=json.load(open(f"{PRE}/render_A.json")); cache={tuple(k.split("\t")):v for k,v in blob["cache"].items()}
 
     d=defaultdict(lambda: defaultdict(list))
-    for l in open(f"{PRE}/scores_reviewergen_claude.jsonl"):
+    for l in open(review_score_path(PRE)):
         r=json.loads(l)
         if r.get("score") is not None: d[r["triple_id"]].setdefault(r["version"],[]).append(r["score"])
     s_true={t:float(np.mean(v["x"])) for t,v in d.items() if "x" in v}
@@ -92,7 +92,7 @@ def main():
     Xb=np.r_[np.c_[pos,dt_true], np.c_[neg,np.zeros(len(common))]]
     au_batt=cvau(Xb)
     out={"task":"CLEAN hard FP on SWE-Review (true-bug code: c_true vs c_false_hard plausible-nonexistent)",
-         "n":len(common),"scorer":"claude-sonnet-4-6",
+         "n":len(common),"scorer":review_model(),
          "raw_scalar_AUROC":round(float(au_raw),4),"pairwise_true>false":round(pairwise,4),
          "battery_AUROC":round(float(au_batt),4),
          "mean_s_true":round(float(pos.mean()),4),"mean_s_false_hard":round(float(neg.mean()),4),

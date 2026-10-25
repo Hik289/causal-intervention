@@ -1,3 +1,4 @@
+from civic.services import chat_client, review_model
 from civic.paths import OUTPUT_DIR
 pass
 
@@ -7,10 +8,10 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 import numpy as np
 DATA=os.environ.get("CIVIC_PROJECT_ROOT", ".") + "/data"
-def gpt(t=120):
-    import openai; return openai.OpenAI(base_url=os.environ["OPENAI_BASE_URL"],api_key=os.environ["OPENAI_API_KEY"],max_retries=6,timeout=t)
+def review_client(t=120):
+    return chat_client()
 def chat(system,user,t=120):
-    r=gpt(t).chat.completions.create(model=os.environ.get("LLM_MODEL_NAME", "gpt-4"),messages=[{"role":"system","content":system},{"role":"user","content":user}])
+    r=review_client(t).chat.completions.create(model=review_model(), messages=[{'role': 'system', 'content': system}, {'role': 'user', 'content': user}])
     return r.choices[0].message.content or ""
 def parse_valid(txt):
     m=re.search(r'VALID:\s*(\d+)',txt,re.I); return max(0,min(100,int(m.group(1))))/100.0 if m else None

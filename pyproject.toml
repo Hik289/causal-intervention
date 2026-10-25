@@ -1,12 +1,18 @@
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "civic-cr"
-version = "0.1.0"
-description = "Causal intervention verification for code-review critique reliability"
+name = "civer"
+dynamic = ["version"]
+description = "Causal Intervention Verification for Reliable Code Review"
 requires-python = ">=3.10"
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
 
 [tool.setuptools.packages.find]
 where = ["."]

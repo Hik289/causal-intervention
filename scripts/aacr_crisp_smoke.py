@@ -1,11 +1,11 @@
+from civic.services import chat_client, review_model
 pass
 
 import os
 import json, os, re, urllib.request, difflib, time, statistics as st
-from openai import OpenAI
 DATA=os.environ.get("CIVIC_PROJECT_ROOT", ".") + "/data"
-client=OpenAI(base_url=os.environ["OPENAI_BASE_URL"],api_key=os.environ["OPENAI_API_KEY"],max_retries=6)
-MODEL=os.environ.get("LLM_MODEL_NAME", "gpt-4")
+client=chat_client()
+MODEL=review_model()
 CRISP={'code defect','security vulnerability','performance'}
 def fetch(repo,sha,path):
     url=f"https://raw.githubusercontent.com/{repo}/{sha}/{path}"
@@ -20,7 +20,7 @@ def region(lines, fl, tl, win=12):
     lo=max(0,fl-win); hi=min(len(lines),(tl or fl)+win)
     return "\n".join(lines[lo:hi]) if lines else None
 def sol(msg):
-    r=client.chat.completions.create(model=MODEL,messages=[{"role":"user","content":msg}],timeout=150)
+    r=client.chat.completions.create(model=MODEL, messages=[{'role': 'user', 'content': msg}])
     return r.choices[0].message.content or ""
 def locate_gen(code_region, note):
     p=f"""下面是一段代码和一条 code review 评论 (指出可能的缺陷)。保持中立:

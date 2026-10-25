@@ -1,3 +1,4 @@
+from civic.services import message_client, message_options, review_model
 from civic.paths import OUTPUT_DIR
 pass
 
@@ -11,13 +12,12 @@ import urllib.request
 random.seed(42)
 AACR=os.environ.get("CIVIC_PROJECT_ROOT", ".") + "/data/aacr-bench_raw/dataset.json"; ARTIFACTS=str(OUTPUT_DIR)
 
-def anth(t=90):
-    import anthropic; return anthropic.Anthropic(base_url=os.environ["ANTHROPIC_BASE_URL"],api_key=os.environ["ANTHROPIC_API_KEY"],max_retries=6,timeout=t)
+def provider_client(t=90):
+    return message_client()
 RUBRIC=("You are an expert code reviewer. Judge ONLY whether the specific defect described in the critique is "
  "actually present in THIS code as shown. Output 'SCORE: <int 0-100>' then 'REASON: <text>'.")
 def score(code,crit):
-    r=anth().messages.create(model="claude-sonnet-4-6",max_tokens=180,temperature=0.4,system=RUBRIC,
-        messages=[{"role":"user","content":f"CRITIQUE:\n{crit}\n\nCODE:\n{code[:6000]}\n\nIs the defect present?"}])
+    r=provider_client().messages.create(model=review_model(), system=RUBRIC, messages=[{'role': 'user', 'content': f'CRITIQUE:\n{crit}\n\nCODE:\n{code[:6000]}\n\nIs the defect present?'}], **message_options())
     return r.content[0].text
 def parse(txt):
     m=re.search(r'SCORE:\s*(\d+)',txt or "",re.I)

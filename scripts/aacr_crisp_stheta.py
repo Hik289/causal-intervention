@@ -1,3 +1,4 @@
+from civic.services import chat_client, review_model, text_encoder
 from civic.paths import OUTPUT_DIR
 pass
 
@@ -7,9 +8,8 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 import numpy as np
 DATA=os.environ.get("CIVIC_PROJECT_ROOT", ".") + "/data"; CACHE=os.environ.get("CIVIC_PROJECT_ROOT", ".") + "/cache"
-from openai import OpenAI
-client=OpenAI(base_url=os.environ["OPENAI_BASE_URL"],api_key=os.environ["OPENAI_API_KEY"],max_retries=6)
-MODEL=os.environ.get("LLM_MODEL_NAME", "gpt-4"); CRISP={'code defect','security vulnerability','performance'}
+client=chat_client()
+MODEL=review_model(); CRISP={'code defect','security vulnerability','performance'}
 def fetch(repo,sha,path):
     url=f"https://raw.githubusercontent.com/{repo}/{sha}/{path}"
     try:
@@ -23,7 +23,7 @@ def region(lines,fl,tl,win=12):
     lo=max(0,fl-win);hi=min(len(lines),(tl or fl)+win)
     return "\n".join(lines[lo:hi])
 def sol(msg):
-    r=client.chat.completions.create(model=MODEL,messages=[{"role":"user","content":msg}],timeout=120)
+    r=client.chat.completions.create(model=MODEL, messages=[{'role': 'user', 'content': msg}])
     return r.choices[0].message.content or ""
 def gen_ic(reg,note):
     p=f"""代码和 review 评论 (可能缺陷)。中性: 存在问题则返回修复区, 否则原样(no-op)。只两块:
@@ -96,7 +96,7 @@ def main():
     valid=[x for x in results if x is not None]
     print(f"constructed {len(valid)} valid interventions",flush=True)
 
-    emb_m=SentenceTransformer("all-MiniLM-L6-v2");E=lambda t:emb_m.encode([str(t) if t else " "],convert_to_numpy=True)[0]
+    emb_m=SentenceTransformer(text_encoder());E=lambda t:emb_m.encode([str(t) if t else " "],convert_to_numpy=True)[0]
     labs=[v[0] for v in valid]
     xb=np.array([E(v[1]) for v in valid]);xic=np.array([E(v[2]) for v in valid]);xcr=np.array([E(v[4]) for v in valid])
 

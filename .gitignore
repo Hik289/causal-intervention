@@ -24,7 +24,8 @@ wandb/
 *.egg-info/
 build/
 dist/
-assets/
+assets/*
+!assets/civic_pipeline.png
 docs/
 *.tex
 *.bib
@@ -35,3 +36,6 @@ docs/
 *.pdf
 *.zip
 .latex-build/
+
+.pytest_cache/
+.coverage

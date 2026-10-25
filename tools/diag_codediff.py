@@ -1,3 +1,4 @@
+from civic.services import review_score_path
 from civic.paths import OUTPUT_DIR
 pass
 
@@ -12,7 +13,7 @@ PRE=os.environ.get("CIVIC_PROJECT_ROOT", ".") + "/data/anchors"
 
 def reviewer_gen_tids():
     d=defaultdict(dict)
-    for l in open(f"{PRE}/scores_reviewergen_claude.jsonl"):
+    for l in open(review_score_path(PRE)):
         r=json.loads(l)
         if r.get("score") is None: continue
         d[r["triple_id"]][r["version"]]=1

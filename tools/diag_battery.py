@@ -1,3 +1,4 @@
+from civic.services import anchor_score_path, review_score_path
 from civic.paths import OUTPUT_DIR
 pass
 
@@ -47,8 +48,8 @@ def run(name, agg):
 
 def main():
     out={}
-    out["reviewer_gen"]=run("reviewer-gen", load(f"{PRE}/scores_reviewergen_claude.jsonl"))
-    out["detailed_A"]=run("detailed-A", load(f"{PRE}/scores_A_claude.jsonl"))
+    out["reviewer_gen"]=run("reviewer-gen", load(review_score_path(PRE)))
+    out["detailed_A"]=run("detailed-A", load(anchor_score_path(PRE)))
     import os
     json.dump(out,open(os.environ.get("CIVIC_PROJECT_ROOT", ".") + "/outputs/diag_battery.json","w"),indent=2)
     print("WROTE diag_battery.json",flush=True)

@@ -1,3 +1,4 @@
+from civic.services import text_encoder
 pass
 
 import os, sys, json, re, numpy as np
@@ -30,7 +31,7 @@ def main():
     pby={i:r.model_patch for i,r in res.iterrows()}
     fixidx=[json.loads(l) for l in open(f"{CACHE}/embfix_index.jsonl")]
     from sentence_transformers import SentenceTransformer
-    m=SentenceTransformer("all-MiniLM-L6-v2")
+    m=SentenceTransformer(text_encoder())
     def emb(t): return m.encode([str(t) if t else " "],convert_to_numpy=True)[0]
     out={"crit":[],"cx":[],"cic":[],"cicp":[]}; keep=[]
     for rec in fixidx:

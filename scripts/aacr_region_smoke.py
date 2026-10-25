@@ -1,10 +1,10 @@
+from civic.services import chat_client, review_model
 pass
 
 import os, sys, json, re, urllib.request, difflib, time, statistics as st
-from openai import OpenAI
 AACR=os.environ.get("CIVIC_PROJECT_ROOT", ".") + "/data/aacr-bench_raw/dataset.json"
-client=OpenAI(base_url=os.environ["OPENAI_BASE_URL"], api_key=os.environ["OPENAI_API_KEY"], max_retries=6)
-MODEL=os.environ.get("LLM_MODEL_NAME", "gpt-4")
+client=chat_client()
+MODEL=review_model()
 
 def fetch(repo,sha,path):
     url=f"https://raw.githubusercontent.com/{repo}/{sha}/{path}"
@@ -14,7 +14,7 @@ def fetch(repo,sha,path):
     except Exception: return None
 
 def sol(msg):
-    r=client.chat.completions.create(model=MODEL,messages=[{"role":"user","content":msg}],timeout=150)
+    r=client.chat.completions.create(model=MODEL, messages=[{'role': 'user', 'content': msg}])
     return r.choices[0].message.content
 
 def locate_and_gen(file_content, note):
@@ -96,7 +96,7 @@ def main():
         out.append({"label":y,"path":r['path'],"ic_diff":ds_ic,"icp_diff":ds_icp,"locate_sanity":sanity,
                     "before":before,"after":after,"icp":icp,"note":r['note'][:300]})
         print(f"  [{'REAL' if y else 'FP  '}] ic_diff={ds_ic:3d} icp_diff={ds_icp:3d} sanity={sanity} {r['path'][:38]}",flush=True)
-    json.dump(out,open(os.environ.get("CIVIC_PROJECT_ROOT", ".") + "/cache/aacr_smoke_v2.json","w"))
+    json.dump(out,open(os.environ.get("CIVIC_PROJECT_ROOT", ".") + "/cache/aacr_region_smoke.json","w"))
     rd=[o['ic_diff'] for o in out if o['label']==1]; fd=[o['ic_diff'] for o in out if o['label']==0]
     san=[o['locate_sanity'] for o in out if o['label']==1 and o['locate_sanity'] is not None]
     print(f"\n== 三检查 ==",flush=True)
@@ -106,6 +106,6 @@ def main():
         print(f"② FP I_c diff: mean={st.mean(fd):.1f} median={st.median(fd)}; FP no-op(≤2)={fp_noop}/{len(fd)} (泄漏护栏)",flush=True)
     if san: print(f"③ REAL 定位 sanity (before∩PR改动区): mean={st.mean(san):.2f} (>0 = sol 定位落到真缺陷区)",flush=True)
     print(f"定位方式: REAL/FP 同一 prompt (sol 盲读整文件自定位), PR diff 仅 REAL sanity, 不作定位来源 → 无定位 artifact",flush=True)
-    print("SMOKE_V2 DONE",flush=True)
+    print("REGION_SMOKE DONE",flush=True)
 
 if __name__=="__main__": main()

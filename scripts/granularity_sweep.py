@@ -1,25 +1,18 @@
+from civic.services import remote_embedding
+from civic.services import text_encoder
 pass
 
 import os, sys, json, time, numpy as np, urllib.request, re
 import tools.build_embeddings as BE
 import pandas as pd, glob
 DATA=os.environ.get("CIVIC_PROJECT_ROOT", ".") + "/data"; DS=f"{DATA}/intervention_dataset"
-AZ_URL=os.environ.get("AZURE_EMBEDDING_ENDPOINT", "")
-AZ_KEY=os.environ.get("AZURE_EMBEDDING_API_KEY", "")
 
 def az(t):
-    t=str(t) if t else " "
-    body=json.dumps({"model":"text-embedding-3-small","input":t[:8000]}).encode()
-    for _ in range(5):
-        try:
-            r=urllib.request.Request(AZ_URL,data=body,headers={"api-key":AZ_KEY,"Content-Type":"application/json"})
-            with urllib.request.urlopen(r,timeout=40) as x: return np.array(json.loads(x.read())["data"][0]["embedding"],dtype=np.float32)
-        except Exception: time.sleep(2)
-    return None
+    return np.asarray(remote_embedding(t), dtype=np.float32)
 
-def minilm_enc():
+def make_text_encoder():
     from sentence_transformers import SentenceTransformer
-    m=SentenceTransformer("all-MiniLM-L6-v2")
+    m=SentenceTransformer(text_encoder())
     return lambda texts: m.encode(texts,convert_to_numpy=True,show_progress_bar=False)
 
 def srcf(p): return [f for f in re.findall(r'diff --git a/(\S+) b/',p or '') if 'test' not in f.lower()]
@@ -64,8 +57,8 @@ def get_samples(n=40):
 
 def analyze(enc_az, enc_mini, samples, xkey, ickey, name):
     xs=[s[xkey] for s in samples]; ics=[s[ickey] for s in samples]
-    for label,enc in [("all-MiniLM",enc_mini),("Azure",enc_az)]:
-        if label=="Azure":
+    for label,enc in [("Text encoder",enc_mini),("Remote",enc_az)]:
+        if label=="Remote":
             hx=np.array([az(t) for t in xs]); hic=np.array([az(t) for t in ics])
         else:
             hx=enc(xs); hic=enc(ics)
@@ -76,11 +69,11 @@ def analyze(enc_az, enc_mini, samples, xkey, ickey, name):
 def main():
     s=get_samples(40)
     print(f"got {len(s)} samples",flush=True)
-    mini=minilm_enc()
+    mini=make_text_encoder()
     print("=== 粒度 1: region ctx=3 (现在) ===",flush=True); analyze(az,mini,s,"region_x","region_ic","ctx3")
     print("=== 粒度 2: hunk ctx=1 (聚焦) ===",flush=True); analyze(az,mini,s,"hunk_x","hunk_ic","hunk")
     print("=== 粒度 3: diff 纯 changed 行 (最聚焦) ===",flush=True); analyze(az,mini,s,"diff_x","diff_ic","diff")
-    print("参照: all-MiniLM region 的 target 偏离 0.041 (the study 要 Azure 聚焦粒度下 > 它)",flush=True)
+    print("参照: Text encoder region 的 target 偏离 0.041 (the study 要 Remote 聚焦粒度下 > 它)",flush=True)
     print("SWEEP DONE",flush=True)
 
 if __name__=="__main__": main()

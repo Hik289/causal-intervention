@@ -1,3 +1,4 @@
+from civic.services import chat_client, review_model
 from civic.paths import OUTPUT_DIR
 pass
 
@@ -7,10 +8,10 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 import numpy as np
 HERE=str(OUTPUT_DIR); DATA=os.environ.get("CIVIC_PROJECT_ROOT", ".") + "/data"
-def gpt(t=120):
-    import openai; return openai.OpenAI(base_url=os.environ["OPENAI_BASE_URL"],api_key=os.environ["OPENAI_API_KEY"],max_retries=6,timeout=t)
-def gpt_chat(system,user,t=120):
-    r=gpt(t).chat.completions.create(model=os.environ.get("LLM_MODEL_NAME", "gpt-4"),messages=[{"role":"system","content":system},{"role":"user","content":user}])
+def review_client(t=120):
+    return chat_client()
+def review_chat(system,user,t=120):
+    r=review_client(t).chat.completions.create(model=review_model(), messages=[{'role': 'system', 'content': system}, {'role': 'user', 'content': user}])
     return r.choices[0].message.content or ""
 
 REVIEW_SYS=("You are an expert code reviewer judging whether a specific review finding describes a REAL defect/issue that "
@@ -19,7 +20,7 @@ REVIEW_SYS=("You are an expert code reviewer judging whether a specific review f
  "(100=definitely real, 0=definitely false-positive/wrong). Output ONLY 'VALID: <int>'.")
 def score_finding(critique, context, category=""):
     try:
-        t=gpt_chat(REVIEW_SYS, f"FINDING CATEGORY: {category}\nFINDING (review comment):\n{critique[:1500]}\n\nCODE CONTEXT:\n{str(context)[:3000]}\n\nIs this a genuine real defect?\nVALID:", t=120)
+        t=review_chat(REVIEW_SYS, f"FINDING CATEGORY: {category}\nFINDING (review comment):\n{critique[:1500]}\n\nCODE CONTEXT:\n{str(context)[:3000]}\n\nIs this a genuine real defect?\nVALID:", t=120)
         m=re.search(r'VALID:\s*(\d+)',t,re.I)
         return max(0,min(100,int(m.group(1))))/100.0 if m else None
     except Exception: return None

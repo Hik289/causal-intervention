@@ -1,3 +1,4 @@
+from civic.services import chat_client, review_model
 from civic.paths import OUTPUT_DIR
 pass
 
@@ -8,10 +9,10 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 DATA=os.environ.get("CIVIC_PROJECT_ROOT", ".") + "/data/swe-review-bench_raw/data"; PRE=os.environ.get("CIVIC_PROJECT_ROOT", ".") + "/data/anchors"
 HERE=str(OUTPUT_DIR)
-def gpt(t=120):
-    import openai; return openai.OpenAI(base_url=os.environ["OPENAI_BASE_URL"],api_key=os.environ["OPENAI_API_KEY"],max_retries=6,timeout=t)
-def gpt_chat(system,user,t=120):
-    r=gpt(t).chat.completions.create(model="gpt-5.5",messages=[{"role":"system","content":system},{"role":"user","content":user}])
+def review_client(t=120):
+    return chat_client()
+def review_chat(system,user,t=120):
+    r=review_client(t).chat.completions.create(model=review_model(), messages=[{'role': 'system', 'content': system}, {'role': 'user', 'content': user}])
     return r.choices[0].message.content or ""
 
 def gold_locus(patch):
@@ -36,7 +37,7 @@ JUDGE_SYS=("You are an impartial evaluator. You are given (1) a reviewer's defec
 def judge_aligned(critique, gold_files, gold_loci):
     loc=f"FILES: {', '.join(gold_files)}\nCODE CONTEXTS (function signatures near the fix):\n"+"\n".join(gold_loci[:6])
     try:
-        t=gpt_chat(JUDGE_SYS,f"REVIEWER CRITIQUE:\n{critique[:1500]}\n\nGROUND-TRUTH BUG LOCATION:\n{loc}\n\nALIGNED:",t=120)
+        t=review_chat(JUDGE_SYS,f"REVIEWER CRITIQUE:\n{critique[:1500]}\n\nGROUND-TRUTH BUG LOCATION:\n{loc}\n\nALIGNED:",t=120)
         m=re.search(r'ALIGNED:\s*(\d+)',t,re.I)
         return max(0,min(100,int(m.group(1))))/100.0 if m else None
     except Exception: return None

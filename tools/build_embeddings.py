@@ -1,3 +1,4 @@
+from civic.services import text_encoder
 pass
 
 import os
@@ -83,7 +84,7 @@ def main():
     ap=argparse.ArgumentParser()
     ap.add_argument("--quads",default=os.path.join(DS,"quadruples_final.jsonl"))
     ap.add_argument("--out_prefix",default=os.path.join(os.environ.get("CIVIC_PROJECT_ROOT", ".") + "/cache","emb"))
-    ap.add_argument("--model",default="all-MiniLM-L6-v2")
+    ap.add_argument("--model",default=text_encoder())
     ap.add_argument("--ctx",type=int,default=3)
     ap.add_argument("--func_level",action="store_true")
     ap.add_argument("--workers",type=int,default=8)

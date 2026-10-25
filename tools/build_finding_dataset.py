@@ -1,3 +1,5 @@
+from civic.services import review_score_path
+from civic.services import message_client, message_options, review_model
 from civic.paths import OUTPUT_DIR
 pass
 
@@ -43,19 +45,17 @@ def region(repo,commit,patch,ctx=40):
             out.append("\n".join(L2[max(0,min(hs)-ctx):min(len(L2),max(hs)+ctx)]))
         return "\n".join(out)[:6000] if out else None
 
-def anth(t=90):
-    import anthropic; return anthropic.Anthropic(base_url=os.environ["ANTHROPIC_BASE_URL"],api_key=os.environ["ANTHROPIC_API_KEY"],max_retries=6,timeout=t)
+def provider_client(t=90):
+    return message_client()
 FALSE_SYS=("You are constructing a HARD test case. Given code, write ONE plausible-sounding review comment claiming a "
  "SPECIFIC defect that does NOT exist in this code (null-deref where guard exists, off-by-one where bound is correct, "
  "missing check that is present). Must sound credible but be FALSE for THIS code. Output ONLY the comment (1-3 sent).")
 def gen_false(code):
-    return anth(90).messages.create(model="claude-sonnet-4-6",max_tokens=200,temperature=0.6,system=FALSE_SYS,
-        messages=[{"role":"user","content":f"CODE:\n{code[:6000]}\n\nPlausible-but-FALSE critique:"}]).content[0].text.strip()
+    return provider_client(90).messages.create(model=review_model(), system=FALSE_SYS, messages=[{'role': 'user', 'content': f'CODE:\n{code[:6000]}\n\nPlausible-but-FALSE critique:'}], **message_options()).content[0].text.strip()
 RUBRIC=("You are an expert code reviewer. Judge ONLY whether the specific defect in the critique is actually present in "
  "THIS code. Output 'SCORE: <int 0-100>' then 'REASON: <text>'.")
 def score(code,crit):
-    return anth().messages.create(model="claude-sonnet-4-6",max_tokens=180,temperature=0.4,system=RUBRIC,
-        messages=[{"role":"user","content":f"CRITIQUE:\n{crit}\n\nCODE:\n{code[:6000]}\n\nIs the defect present?"}]).content[0].text
+    return provider_client().messages.create(model=review_model(), system=RUBRIC, messages=[{'role': 'user', 'content': f'CRITIQUE:\n{crit}\n\nCODE:\n{code[:6000]}\n\nIs the defect present?'}], **message_options()).content[0].text
 def parse(txt):
     m=re.search(r'SCORE:\s*(\d+)',txt or "",re.I)
     if m: return max(0,min(100,int(m.group(1))))/100.0
@@ -76,7 +76,7 @@ def main():
         if q["issue_id"] not in crit and q["critique"].get("text"): crit[q["issue_id"]]=q["critique"]["text"]
 
     d=defaultdict(lambda: defaultdict(list))
-    for l in open(f"{PRE}/scores_reviewergen_claude.jsonl"):
+    for l in open(review_score_path(PRE)):
         r=json.loads(l)
         if r.get("score") is not None: d[r["triple_id"]][r["version"]].append(r["score"])
     s_true_pre={t:float(np.mean(v["x"])) for t,v in d.items() if "x" in v}

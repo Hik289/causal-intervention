@@ -1,3 +1,5 @@
+from civic.services import review_score_path
+from civic.services import text_encoder
 from civic.paths import OUTPUT_DIR
 pass
 
@@ -12,7 +14,7 @@ PRE=os.environ.get("CIVIC_PROJECT_ROOT", ".") + "/data/anchors"
 os.environ["HF_HOME"]=os.environ.get("CIVIC_PROJECT_ROOT", ".") + "/cache/hf"
 
 def load_scores():
-    rows=[json.loads(l) for l in open(f"{PRE}/scores_reviewergen_claude.jsonl") if json.loads(l).get("score") is not None]
+    rows=[json.loads(l) for l in open(review_score_path(PRE)) if json.loads(l).get("score") is not None]
     d=defaultdict(lambda: defaultdict(list))
     raw=defaultdict(dict)
     for r in rows:
@@ -39,7 +41,7 @@ def main():
     print(f"[#2 LLM scalar] AUROC={au2:.4f} PairwiseAcc(s_bug>s_safe)={pa2:.4f} mean_margin={float((s_bug-s_safe).mean()):.4f}",flush=True)
 
     from sentence_transformers import SentenceTransformer
-    mt=SentenceTransformer("all-MiniLM-L6-v2")
+    mt=SentenceTransformer(text_encoder())
     rb=[parse_reason(raw[t].get("x","")) for t in tids]
     rs=[parse_reason(raw[t].get("target","")) for t in tids]
     eb=mt.encode(rb,convert_to_numpy=True); es=mt.encode(rs,convert_to_numpy=True)

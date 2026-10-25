@@ -1,3 +1,5 @@
+from civic.services import review_score_path
+from civic.services import message_client, message_options, review_model
 from civic.paths import OUTPUT_DIR
 pass
 
@@ -14,21 +16,19 @@ random.seed(42)
 AACR=os.environ.get("CIVIC_PROJECT_ROOT", ".") + "/data/aacr-bench_raw/dataset.json"
 ARTIFACTS=str(OUTPUT_DIR); PRE=os.environ.get("CIVIC_PROJECT_ROOT", ".") + "/data/anchors"
 
-def anth(timeout=90):
-    import anthropic
-    return anthropic.Anthropic(base_url=os.environ["ANTHROPIC_BASE_URL"],api_key=os.environ["ANTHROPIC_API_KEY"],max_retries=6,timeout=timeout)
+def provider_client(timeout=90):
+
+    return message_client()
 RUBRIC=("You are an expert code reviewer. Judge ONLY whether the specific defect described in the critique is "
  "actually present in THIS code as shown. Output 'SCORE: <int 0-100>' (confidence defect present) then 'REASON: <text>'.")
 def score(code,crit):
-    r=anth().messages.create(model="claude-sonnet-4-6",max_tokens=180,temperature=0.4,system=RUBRIC,
-        messages=[{"role":"user","content":f"CRITIQUE:\n{crit}\n\nCODE:\n{code[:6000]}\n\nIs the defect present?"}])
+    r=provider_client().messages.create(model=review_model(), system=RUBRIC, messages=[{'role': 'user', 'content': f'CRITIQUE:\n{crit}\n\nCODE:\n{code[:6000]}\n\nIs the defect present?'}], **message_options())
     return r.content[0].text
 FIX_SYS=("You are a developer. The review comment below claims a specific defect in the code. Apply a MINIMAL edit "
  "that fixes exactly the claimed defect. If the claimed defect does NOT actually exist, make the smallest change you "
  "would make to address the comment anyway (may be a redundant guard or no-op). Output ONLY the full edited code region.")
 def gen_fix(code,crit):
-    r=anth(120).messages.create(model="claude-sonnet-4-6",max_tokens=4000,temperature=0.3,system=FIX_SYS,
-        messages=[{"role":"user","content":f"COMMENT:\n{crit}\n\nCODE:\n{code[:6000]}\n\nEdited code region:"}])
+    r=provider_client(120).messages.create(model=review_model(), system=FIX_SYS, messages=[{'role': 'user', 'content': f'COMMENT:\n{crit}\n\nCODE:\n{code[:6000]}\n\nEdited code region:'}], **message_options())
     return r.content[0].text
 def parse(txt):
     m=re.search(r'SCORE:\s*(\d+)',txt or "",re.I)
@@ -103,7 +103,7 @@ def swe_executable():
     pass
 
     d=defaultdict(dict)
-    for l in open(f"{PRE}/scores_reviewergen_claude.jsonl"):
+    for l in open(review_score_path(PRE)):
         r=json.loads(l)
         if r.get("score") is None: continue
         d[r["triple_id"]].setdefault(r["version"],[]).append(r["score"])

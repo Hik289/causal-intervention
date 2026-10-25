@@ -1,3 +1,4 @@
+from civic.services import message_client, message_options, review_model
 from civic.paths import OUTPUT_DIR
 pass
 
@@ -7,8 +8,8 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 PRE=os.environ.get("CIVIC_PROJECT_ROOT", ".") + "/data/anchors"; ARTIFACTS=str(OUTPUT_DIR)
 HERE=str(OUTPUT_DIR)
-def anth(t=60):
-    import anthropic; return anthropic.Anthropic(base_url=os.environ["ANTHROPIC_BASE_URL"],api_key=os.environ["ANTHROPIC_API_KEY"],max_retries=6,timeout=t)
+def provider_client(t=60):
+    return message_client()
 def toks(s): return set(w for w in re.findall(r'[a-zA-Z_][a-zA-Z0-9_]+',(s or "").lower()) if len(w)>3)
 def jaccard(a,b):
     ta,tb=toks(a),toks(b)
@@ -22,8 +23,7 @@ JUDGE_SYS=("You are an impartial evaluator checking dataset quality. You are giv
  "real defect (clean false-positive). Output ONLY 'SAME: <int>'.")
 def judge_same(c_true, c_false):
     try:
-        r=anth(60).messages.create(model="claude-sonnet-4-6",max_tokens=20,temperature=0.0,system=JUDGE_SYS,
-            messages=[{"role":"user","content":f"CRITIQUE T (real defect):\n{c_true}\n\nCRITIQUE F (should be nonexistent defect):\n{c_false}\n\nDoes F describe the same real defect as T?\nSAME:"}])
+        r=provider_client(60).messages.create(model=review_model(), system=JUDGE_SYS, messages=[{'role': 'user', 'content': f'CRITIQUE T (real defect):\n{c_true}\n\nCRITIQUE F (should be nonexistent defect):\n{c_false}\n\nDoes F describe the same real defect as T?\nSAME:'}], **message_options())
         m=re.search(r'SAME:\s*(\d+)',r.content[0].text,re.I)
         return max(0,min(100,int(m.group(1))))/100.0 if m else None
     except Exception: return None

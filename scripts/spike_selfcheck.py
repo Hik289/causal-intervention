@@ -1,3 +1,4 @@
+from civic.services import message_client, message_options, review_model
 from civic.paths import OUTPUT_DIR
 pass
 
@@ -9,8 +10,8 @@ ARTIFACTS=str(OUTPUT_DIR)
 def dbl(x):
     x=json.loads(x) if isinstance(x,str) else x
     return json.loads(x) if isinstance(x,str) else x
-def anth(t=90):
-    import anthropic; return anthropic.Anthropic(base_url=os.environ["ANTHROPIC_BASE_URL"],api_key=os.environ["ANTHROPIC_API_KEY"],max_retries=6,timeout=t)
+def provider_client(t=90):
+    return message_client()
 def sh(c,t=120):
     r=subprocess.run(c,shell=True,capture_output=True,text=True,timeout=t); return r.returncode,r.stdout,r.stderr
 
@@ -28,8 +29,7 @@ def gen_check(code,crit,repo,retries=3):
     last=""
     for att in range(retries):
         try:
-            r=anth(120).messages.create(model="claude-sonnet-4-6",max_tokens=1200,temperature=0.3 if att==0 else 0.5,system=GEN_SYS,
-                messages=[{"role":"user","content":f"REPOSITORY: {repo}\n\nCRITIQUE (claimed defect):\n{crit}\n\nCODE:\n{code[:6000]}\n\nSelf-contained executable check JSON:"}])
+            r=provider_client(120).messages.create(model=review_model(), system=GEN_SYS, messages=[{'role': 'user', 'content': f'REPOSITORY: {repo}\n\nCRITIQUE (claimed defect):\n{crit}\n\nCODE:\n{code[:6000]}\n\nSelf-contained executable check JSON:'}], **message_options())
             last=r.content[0].text
             o=parse_json(last)
             if o and o.get("check_script"): return last

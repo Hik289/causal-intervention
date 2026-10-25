@@ -1,3 +1,4 @@
+from civic.services import chat_client, review_model
 from civic.paths import OUTPUT_DIR
 pass
 
@@ -13,17 +14,16 @@ def dbl(x):
     x=json.loads(x) if isinstance(x,str) else x
     return json.loads(x) if isinstance(x,str) else x
 
-def gpt(t=180):
-    import openai; return openai.OpenAI(base_url=os.environ["OPENAI_BASE_URL"],api_key=os.environ["OPENAI_API_KEY"],max_retries=6,timeout=t)
-def gpt_chat(system, user, t=180):
+def review_client(t=180):
+    return chat_client()
+def review_chat(system, user, t=180):
     pass
-    r=gpt(t).chat.completions.create(model="gpt-5.5",
-        messages=[{"role":"system","content":system},{"role":"user","content":user}])
+    r=review_client(t).chat.completions.create(model=review_model(), messages=[{'role': 'system', 'content': system}, {'role': 'user', 'content': user}])
     return r.choices[0].message.content or ""
 def sh(c,t=120):
     r=subprocess.run(c,shell=True,capture_output=True,text=True,timeout=t); return r.returncode,r.stdout,r.stderr
 import shutil as _sh
-def free_gb(): return _sh.disk_usage("/data2")[2]//(1024**3)
+def free_gb(): return _sh.disk_usage(os.environ.get("CIVIC_PROJECT_ROOT", "."))[2]//(1024**3)
 
 def django_ids(p2p):
     out=[]
@@ -144,7 +144,7 @@ def gen_repair(code_files, crit, repo, retries=3, feedback=None):
         user+=f"\n\nYour previous fix attempt did NOT resolve the failing test. Test output:\n{feedback[:2500]}\n\nRevise your SEARCH/REPLACE edit(s) to actually fix the defect:"
     for att in range(retries):
         try:
-            t=gpt_chat(sys_p, user, t=200)
+            t=review_chat(sys_p, user, t=200)
             edits=_parse_edits(t, code_files)
             if edits: return edits
         except Exception: pass

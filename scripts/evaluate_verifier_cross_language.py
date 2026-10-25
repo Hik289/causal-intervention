@@ -1,3 +1,4 @@
+from civic.services import text_encoder
 from civic.paths import OUTPUT_DIR
 pass
 
@@ -37,7 +38,7 @@ byl=defaultdict(list)
 for r in d:
     if r.get("note") and r.get("label") is not None and r.get("project_main_language"):
         byl[r["project_main_language"]].append(r)
-emb_m=SentenceTransformer("all-MiniLM-L6-v2"); E=lambda t:emb_m.encode([str(t) if t else " "],convert_to_numpy=True)[0]
+emb_m=SentenceTransformer(text_encoder()); E=lambda t:emb_m.encode([str(t) if t else " "],convert_to_numpy=True)[0]
 samp={}
 for lang,xs in byl.items():
     random.shuffle(xs); xs=xs[:40]

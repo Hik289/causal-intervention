@@ -1,10 +1,10 @@
+from civic.services import chat_client, review_model
 pass
 
 import os, sys, json, re, urllib.request, difflib, time
-from openai import OpenAI
 AACR=os.environ.get("CIVIC_PROJECT_ROOT", ".") + "/data/aacr-bench_raw/dataset.json"
-client=OpenAI(base_url=os.environ["OPENAI_BASE_URL"], api_key=os.environ["OPENAI_API_KEY"], max_retries=6)
-MODEL=os.environ.get("LLM_MODEL_NAME", "gpt-4")
+client=chat_client()
+MODEL=review_model()
 
 def fetch(repo,sha,path):
     url=f"https://raw.githubusercontent.com/{repo}/{sha}/{path}"
@@ -26,7 +26,7 @@ def region_around(code, note, win=40):
     return "\n".join(lines[:win]), 0
 
 def sol(msg):
-    r=client.chat.completions.create(model=MODEL,messages=[{"role":"user","content":msg}],timeout=120)
+    r=client.chat.completions.create(model=MODEL, messages=[{'role': 'user', 'content': msg}])
     return r.choices[0].message.content
 
 def gen_ic_blind(region, note):

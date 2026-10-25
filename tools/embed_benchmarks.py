@@ -1,3 +1,4 @@
+from civic.services import text_encoder
 from civic.paths import OUTPUT_DIR
 pass
 
@@ -46,7 +47,7 @@ def load_swepr():
     return items
 
 def main():
-    ap=argparse.ArgumentParser(); ap.add_argument("--bench",default="aacr"); ap.add_argument("--model",default="all-MiniLM-L6-v2")
+    ap=argparse.ArgumentParser(); ap.add_argument("--bench",default="aacr"); ap.add_argument("--model",default=text_encoder())
     args=ap.parse_args()
     if args.bench=="aacr": items=load_aacr()
     elif args.bench=="swepr": items=load_swepr()

@@ -1,3 +1,4 @@
+from civic.services import review_score_path
 from civic.paths import OUTPUT_DIR
 pass
 
@@ -18,7 +19,7 @@ def raw_specificity(idx):
     pass
     from collections import defaultdict
     d=defaultdict(lambda: defaultdict(list)); repo={}
-    for l in open(f"{PRE}/scores_reviewergen_claude.jsonl"):
+    for l in open(review_score_path(PRE)):
         r=json.loads(l)
         if r.get("score") is None: continue
         d[r["triple_id"]][r["version"]].append(r["score"]); repo[r["triple_id"]]=r.get("repo","")
@@ -88,7 +89,7 @@ def main():
         res[rung]={k:[round(float(np.mean(v)),4),round(float(np.std(v)),4)] for k,v in accs.items()}
         print(f"{rung}:",res[rung],flush=True)
     res["verdict_note"]=("(a) if R4 SpecRatio & AUROC(Δt,Δu) significantly > R1(raw) & R2(MLP) and drops when L_spec removed (R3). "
-                         "(b) if R4 ~ R1/R2. frozen emb=all-MiniLM (weak, see ISOLATE); this tests if trained nonlinear upper+causal loss recovers signal linear probe missed.")
+                         "(b) if R4 ~ R1/R2. frozen emb=Text encoder (weak, see ISOLATE); this tests if trained nonlinear upper+causal loss recovers signal linear probe missed.")
     json.dump(res,open(args.out,"w"),indent=2)
     print("WROTE specificity_ablation_results.json",flush=True)
 

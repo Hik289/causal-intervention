@@ -1,3 +1,4 @@
+from civic.services import message_client, message_options, review_model
 from civic.paths import OUTPUT_DIR
 pass
 
@@ -17,10 +18,9 @@ RUBRIC=("You are an expert code reviewer. Below is a code snippet and a critique
  "Output a single integer 0-100 = confidence the claimed defect is genuinely present, then one short reason. "
  "Format exactly: SCORE: <int>\\nREASON: <text>")
 def score_llm(code, crit, timeout=90):
-    import anthropic
-    c=anthropic.Anthropic(base_url=os.environ["ANTHROPIC_BASE_URL"],api_key=os.environ["ANTHROPIC_API_KEY"],max_retries=6,timeout=timeout)
-    r=c.messages.create(model="claude-sonnet-4-6",max_tokens=200,temperature=0.4,
-        system=RUBRIC,messages=[{"role":"user","content":f"CRITIQUE:\n{crit}\n\nCODE:\n{code[:6000]}\n\nIs the specific defect present in THIS code?"}])
+
+    c=message_client()
+    r=c.messages.create(model=review_model(), system=RUBRIC, messages=[{'role': 'user', 'content': f'CRITIQUE:\n{crit}\n\nCODE:\n{code[:6000]}\n\nIs the specific defect present in THIS code?'}], **message_options())
     return r.content[0].text
 def parse(txt):
     m=re.search(r'SCORE:\s*(\d+)',txt or "",re.I)
@@ -98,7 +98,7 @@ def main():
     y=np.r_[np.ones(len(ps)),np.zeros(len(ns))]; s=np.r_[ps,ns]
     au=roc_auc_score(y,s) if ps and ns else float('nan')
     out={"task":"HARD plausible FP detection (AACR label=1 AI-critique vs label=0 AI-FP)",
-         "n_pos":len(ps),"n_neg":len(ns),"scorer":"claude-sonnet-4-6",
+         "n_pos":len(ps),"n_neg":len(ns),"scorer":review_model(),
          "raw_LLM_scalar_AUROC":round(float(au),4),
          "mean_s_true":round(float(np.mean(ps)),4) if ps else None,
          "mean_s_hardFP":round(float(np.mean(ns)),4) if ns else None,

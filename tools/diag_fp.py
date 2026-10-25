@@ -1,3 +1,5 @@
+from civic.services import review_score_path
+from civic.services import message_client, message_options, review_model
 from civic.paths import OUTPUT_DIR
 pass
 
@@ -16,10 +18,9 @@ RUBRIC=("You are an expert code reviewer. Below is a code snippet and a critique
  "Output a single integer 0-100 = confidence the claimed defect is genuinely present, then one short reason. "
  "Format exactly: SCORE: <int>\\nREASON: <text>")
 def score_llm(code, crit, timeout=90):
-    import anthropic
-    c=anthropic.Anthropic(base_url=os.environ["ANTHROPIC_BASE_URL"],api_key=os.environ["ANTHROPIC_API_KEY"],max_retries=6,timeout=timeout)
-    r=c.messages.create(model="claude-sonnet-4-6",max_tokens=200,temperature=0.0 if False else 0.4,
-        system=RUBRIC,messages=[{"role":"user","content":f"CRITIQUE:\n{crit}\n\nCODE:\n{code[:6000]}\n\nIs the specific defect present in THIS code?"}])
+
+    c=message_client()
+    r=c.messages.create(model=review_model(), system=RUBRIC, messages=[{'role': 'user', 'content': f'CRITIQUE:\n{crit}\n\nCODE:\n{code[:6000]}\n\nIs the specific defect present in THIS code?'}], **message_options())
     return r.content[0].text
 def parse(txt):
     m=re.search(r'SCORE:\s*(\d+)',txt or "",re.I)
@@ -33,7 +34,7 @@ def main():
     tri=[json.loads(l) for l in open(f"{PRE}/triples_reviewergen.jsonl") if json.loads(l).get("critique")]
 
     sc=defaultdict(lambda: defaultdict(list))
-    for l in open(f"{PRE}/scores_reviewergen_claude.jsonl"):
+    for l in open(review_score_path(PRE)):
         r=json.loads(l)
         if r.get("score") is not None: sc[r["triple_id"]][r["version"]].append(r["score"])
     s_true={t:float(np.mean(v["x"])) for t,v in sc.items() if "x" in v}
@@ -83,7 +84,7 @@ def main():
     au=roc_auc_score(y,s)
     pairwise=float(np.mean(np.array(pos)>np.array(neg)))
     out={"task":"FP-detection (true critique vs mismatched false critique, reviewer-gen dist)",
-         "n_pairs":len(pos),"scorer":"claude-sonnet-4-6",
+         "n_pairs":len(pos),"scorer":review_model(),
          "LLM_scalar_AUROC":round(float(au),4),"pairwise_true>false":round(pairwise,4),
          "mean_s_true":round(float(np.mean(pos)),4),"mean_s_false":round(float(np.mean(neg)),4)}
     json.dump(out,open(os.environ.get("CIVIC_PROJECT_ROOT", ".") + "/outputs/diag_fp.json","w"),indent=2)

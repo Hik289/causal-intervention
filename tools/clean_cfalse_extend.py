@@ -1,3 +1,4 @@
+from civic.services import chat_client, review_model
 from civic.paths import OUTPUT_DIR
 pass
 
@@ -6,10 +7,10 @@ import json, os, re
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 HERE=str(OUTPUT_DIR)
-def gpt(t=120):
-    import openai; return openai.OpenAI(base_url=os.environ["OPENAI_BASE_URL"],api_key=os.environ["OPENAI_API_KEY"],max_retries=6,timeout=t)
-def gpt_chat(system,user,t=120):
-    r=gpt(t).chat.completions.create(model="gpt-5.5",messages=[{"role":"system","content":system},{"role":"user","content":user}])
+def review_client(t=120):
+    return chat_client()
+def review_chat(system,user,t=120):
+    r=review_client(t).chat.completions.create(model=review_model(), messages=[{'role': 'system', 'content': system}, {'role': 'user', 'content': user}])
     return r.choices[0].message.content or ""
 def toks(s): return set(w for w in re.findall(r'[a-zA-Z_][a-zA-Z0-9_]+',(s or "").lower()) if len(w)>3)
 def jaccard(a,b):
@@ -21,7 +22,7 @@ JUDGE_SYS=("You are an impartial evaluator checking dataset quality. Two defect 
  "same real defect as T (DIRTY), 0=F is a genuinely different nonexistent mechanism (clean). Output ONLY 'SAME: <int>'.")
 def judge_same(ct,cf):
     try:
-        t=gpt_chat(JUDGE_SYS,f"CRITIQUE T (real):\n{ct}\n\nCRITIQUE F (should be nonexistent):\n{cf}\n\nSAME:",t=120)
+        t=review_chat(JUDGE_SYS,f"CRITIQUE T (real):\n{ct}\n\nCRITIQUE F (should be nonexistent):\n{cf}\n\nSAME:",t=120)
         m=re.search(r'SAME:\s*(\d+)',t,re.I)
         return max(0,min(100,int(m.group(1))))/100.0 if m else None
     except Exception: return None

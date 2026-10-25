@@ -1,3 +1,5 @@
+from civic.services import review_score_path
+from civic.services import message_client, message_options, review_model
 from civic.paths import OUTPUT_DIR
 pass
 
@@ -8,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 import pandas as pd, glob, shutil
 random.seed(42)
-def shutil_free(): return shutil.disk_usage("/data2")[2]//(1024**3)
+def shutil_free(): return shutil.disk_usage(os.environ.get("CIVIC_PROJECT_ROOT", "."))[2]//(1024**3)
 DATA=os.environ.get("CIVIC_PROJECT_ROOT", ".") + "/data/swe-review-bench_raw/data"; PRE=os.environ.get("CIVIC_PROJECT_ROOT", ".") + "/data/anchors"
 ARTIFACTS=str(OUTPUT_DIR); RESULTS=str(OUTPUT_DIR); REPOS=os.environ.get("CIVIC_PROJECT_ROOT", ".") + "/repos_cache"
 os.makedirs(RESULTS,exist_ok=True)
@@ -21,8 +23,8 @@ def sh(c,cwd=None,t=120):
 def dbl(x):
     x=json.loads(x) if isinstance(x,str) else x
     return json.loads(x) if isinstance(x,str) else x
-def anth(t=90):
-    import anthropic; return anthropic.Anthropic(base_url=os.environ["ANTHROPIC_BASE_URL"],api_key=os.environ["ANTHROPIC_API_KEY"],max_retries=6,timeout=t)
+def provider_client(t=90):
+    return message_client()
 
 GEN_SYS=("You are an expert code reviewer. Examine the code and the candidate defect critique. "
  "If the claimed defect is REAL, predict a concrete, FALSIFIABLE consequence: name the kind of test or input that "
@@ -32,8 +34,7 @@ GEN_SYS=("You are an expert code reviewer. Examine the code and the candidate de
  "\"predicted_failing_test_hint\":\"<test name / module / behavior you predict currently fails>\","
  "\"self_confidence\":<int 0-100 that this prediction would actually hold>}. Output ONLY JSON. Do NOT assume the defect is real.")
 def gen_mech(code,crit):
-    r=anth(90).messages.create(model="claude-sonnet-4-6",max_tokens=400,temperature=0.3,system=GEN_SYS,
-        messages=[{"role":"user","content":f"CRITIQUE:\n{crit}\n\nCODE:\n{code[:6000]}\n\nFalsifiable mechanism prediction JSON:"}])
+    r=provider_client(90).messages.create(model=review_model(), system=GEN_SYS, messages=[{'role': 'user', 'content': f'CRITIQUE:\n{crit}\n\nCODE:\n{code[:6000]}\n\nFalsifiable mechanism prediction JSON:'}], **message_options())
     return r.content[0].text
 def parse_json(t):
     t=re.sub(r'^```(?:json)?','',t.strip()); t=re.sub(r'```$','',t.strip()); i=t.find("{")
@@ -44,8 +45,7 @@ def parse_json(t):
 RUBRIC=("You are an expert code reviewer. Judge ONLY whether the specific defect in the critique is actually present in "
  "THIS code. Output 'SCORE: <int 0-100>' then 'REASON: <text>'.")
 def raw_score(code,crit):
-    r=anth().messages.create(model="claude-sonnet-4-6",max_tokens=150,temperature=0.4,system=RUBRIC,
-        messages=[{"role":"user","content":f"CRITIQUE:\n{crit}\n\nCODE:\n{code[:6000]}\n\nIs the defect present?"}])
+    r=provider_client().messages.create(model=review_model(), system=RUBRIC, messages=[{'role': 'user', 'content': f'CRITIQUE:\n{crit}\n\nCODE:\n{code[:6000]}\n\nIs the defect present?'}], **message_options())
     return r.content[0].text
 def parse_score(t):
     m=re.search(r'SCORE:\s*(\d+)',t or "",re.I)
@@ -74,8 +74,7 @@ def llm_judge_match(mech, hint, f2p_str, test_bodies=""):
     if not (mech or hint): return 0.0
     tb=("\n\nACTUAL FAILING TEST CODE (what these tests check):\n"+test_bodies[:4000]) if test_bodies else ""
     try:
-        r=anth(60).messages.create(model="claude-sonnet-4-6",max_tokens=30,temperature=0.0,system=JUDGE_SYS,
-            messages=[{"role":"user","content":f"REVIEWER PREDICTED MECHANISM:\n{mech}\nPREDICTED FAILING TEST/BEHAVIOR:\n{hint}\n\nACTUAL FAILING TESTS (ground truth, names):\n{f2p_str}{tb}\n\nMATCH:"}])
+        r=provider_client(60).messages.create(model=review_model(), system=JUDGE_SYS, messages=[{'role': 'user', 'content': f'REVIEWER PREDICTED MECHANISM:\n{mech}\nPREDICTED FAILING TEST/BEHAVIOR:\n{hint}\n\nACTUAL FAILING TESTS (ground truth, names):\n{f2p_str}{tb}\n\nMATCH:'}], **message_options())
         m=re.search(r'MATCH:\s*(\d+)',r.content[0].text,re.I)
         return max(0,min(100,int(m.group(1))))/100.0 if m else 0.0
     except Exception: return 0.0
@@ -210,7 +209,7 @@ def main():
         if r.get("c_false"): cfalse[r["tid"]]=r["c_false"]
 
     draw=defaultdict(lambda: defaultdict(list))
-    for l in open(f"{PRE}/scores_reviewergen_claude.jsonl"):
+    for l in open(review_score_path(PRE)):
         r=json.loads(l)
         if r.get("score") is not None: draw[r["triple_id"]][r["version"]].append(r["score"])
     s_true_A={t:float(np.mean(v["x"])) for t,v in draw.items() if "x" in v}

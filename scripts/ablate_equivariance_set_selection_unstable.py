@@ -1,3 +1,4 @@
+from civic.services import text_encoder
 from civic.paths import OUTPUT_DIR
 pass
 
@@ -37,7 +38,7 @@ print("building transform embeddings...",flush=True)
 quads=[json.loads(l) for l in open(f"{DS}/quadruples_final.jsonl")]; qmap={q['quad_id']:q for q in quads}
 df=pd.concat([pd.read_parquet(f) for f in glob.glob(f"{DATA}/swe-review-bench_raw/data/*.parquet")],ignore_index=True)
 res=df[df.resolved==True].groupby('instance_id').first();pby={i:r.model_patch for i,r in res.iterrows()}
-m=SentenceTransformer("all-MiniLM-L6-v2"); emb=lambda t:m.encode([str(t) if t else " "],convert_to_numpy=True)[0]
+m=SentenceTransformer(text_encoder()); emb=lambda t:m.encode([str(t) if t else " "],convert_to_numpy=True)[0]
 txcx=np.zeros_like(cx); txcic=np.zeros_like(cic); havetx=np.zeros(len(idx),dtype=bool)
 for i in clean:
     q=qmap.get(idx[i]['quad_id']);

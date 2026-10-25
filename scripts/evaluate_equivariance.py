@@ -1,3 +1,4 @@
+from civic.services import text_encoder
 from civic.paths import OUTPUT_DIR
 pass
 
@@ -38,7 +39,7 @@ def main():
     df=pd.concat([pd.read_parquet(f) for f in glob.glob(f"{DATA}/swe-review-bench_raw/data/*.parquet")],ignore_index=True)
     res=df[df.resolved==True].groupby('instance_id').first(); pby={i:r.model_patch for i,r in res.iterrows()}
     fixidx=[json.loads(l) for l in open(f"{CACHE}/embdiff_index.jsonl")]
-    m=SentenceTransformer("all-MiniLM-L6-v2")
+    m=SentenceTransformer(text_encoder())
     def emb(t): return m.encode([str(t) if t else " "],convert_to_numpy=True)[0]
 
     recs=[]

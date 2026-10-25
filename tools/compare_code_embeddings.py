@@ -1,3 +1,4 @@
+from civic.services import code_encoder, text_encoder
 pass
 
 import os, sys, json, numpy as np, torch
@@ -37,15 +38,15 @@ def get_regions(n=40):
         if len(out)>=n: break
     return out
 
-def encode_minilm(texts):
+def encode_text(texts):
     from sentence_transformers import SentenceTransformer
-    m=SentenceTransformer("all-MiniLM-L6-v2")
+    m=SentenceTransformer(text_encoder())
     return m.encode(texts,convert_to_numpy=True,show_progress_bar=False)
 
-def encode_unixcoder(texts):
+def encode_code(texts):
     from transformers import AutoTokenizer, AutoModel
-    tok=AutoTokenizer.from_pretrained("microsoft/unixcoder-base")
-    mdl=AutoModel.from_pretrained("microsoft/unixcoder-base"); mdl.eval()
+    tok=AutoTokenizer.from_pretrained(code_encoder())
+    mdl=AutoModel.from_pretrained(code_encoder()); mdl.eval()
     embs=[]
     with torch.no_grad():
         for t in texts:
@@ -73,8 +74,8 @@ def main():
     trips=get_regions(40)
     print(f"got {len(trips)} quad region triples",flush=True)
     if len(trips)<10: print("too few, abort"); return
-    sep(encode_minilm, trips, "all-MiniLM (baseline 0.28)")
-    sep(encode_unixcoder, trips, "UniXcoder (code-aware)")
+    sep(encode_text, trips, "Text encoder (baseline 0.28)")
+    sep(encode_code, trips, "Code encoder (code-aware)")
     print("SMOKE DONE",flush=True)
 
 if __name__=="__main__": main()

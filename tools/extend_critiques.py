@@ -1,3 +1,4 @@
+from civic.services import chat_client, review_model
 from civic.paths import OUTPUT_DIR
 pass
 
@@ -9,10 +10,10 @@ from threading import Lock
 DATA=os.environ.get("CIVIC_PROJECT_ROOT", ".") + "/data/swe-review-bench_raw/data"; PRE=os.environ.get("CIVIC_PROJECT_ROOT", ".") + "/data/anchors"
 HERE=str(OUTPUT_DIR)
 random.seed(42)
-def gpt(t=180):
-    import openai; return openai.OpenAI(base_url=os.environ["OPENAI_BASE_URL"],api_key=os.environ["OPENAI_API_KEY"],max_retries=6,timeout=t)
-def gpt_chat(system,user,t=180):
-    r=gpt(t).chat.completions.create(model="gpt-5.5",messages=[{"role":"system","content":system},{"role":"user","content":user}])
+def review_client(t=180):
+    return chat_client()
+def review_chat(system,user,t=180):
+    r=review_client(t).chat.completions.create(model=review_model(), messages=[{'role': 'system', 'content': system}, {'role': 'user', 'content': user}])
     return r.choices[0].message.content or ""
 def dbl(x):
     x=json.loads(x) if isinstance(x,str) else x
@@ -20,7 +21,7 @@ def dbl(x):
 def sh(c,t=120):
     r=subprocess.run(c,shell=True,capture_output=True,text=True,timeout=t); return r.returncode,r.stdout,r.stderr
 import shutil as _sh
-def free_gb(): return _sh.disk_usage("/data2")[2]//(1024**3)
+def free_gb(): return _sh.disk_usage(os.environ.get("CIVIC_PROJECT_ROOT", "."))[2]//(1024**3)
 
 REVIEWER_SYS=("You are an expert code reviewer. You are given a bug report and the current source file(s). Based on the report, "
  "identify the SPECIFIC code-level defect: name the function, the lines, and the exact mechanism that causes the reported "
@@ -28,13 +29,13 @@ REVIEWER_SYS=("You are an expert code reviewer. You are given a bug report and t
  "bug. Reference concrete code (function names, line numbers, variables). Do NOT just restate the report; diagnose the "
  "mechanism in the code. Output ONLY the critique.")
 def gen_true(report, code, repo):
-    return gpt_chat(REVIEWER_SYS, f"REPOSITORY: {repo}\n\nBUG REPORT:\n{report[:2000]}\n\nSOURCE FILE(S):\n{code[:9000]}\n\nTechnical mechanism critique:", t=360)
+    return review_chat(REVIEWER_SYS, f"REPOSITORY: {repo}\n\nBUG REPORT:\n{report[:2000]}\n\nSOURCE FILE(S):\n{code[:9000]}\n\nTechnical mechanism critique:", t=360)
 
 FALSE_SYS=("You are an expert code reviewer. Invent a PLAUSIBLE-sounding but FALSE defect critique about this code: it must "
  "describe a specific defect (function/lines/mechanism) that sounds reasonable but does NOT actually exist in this code. "
  "Same style/specificity as a real critique. 3-6 sentences. Output ONLY the critique.")
 def gen_false(code, repo):
-    return gpt_chat(FALSE_SYS, f"REPOSITORY: {repo}\n\nCODE:\n{code[:9000]}\n\nPlausible-but-FALSE defect critique:", t=360)
+    return review_chat(FALSE_SYS, f"REPOSITORY: {repo}\n\nCODE:\n{code[:9000]}\n\nPlausible-but-FALSE defect critique:", t=360)
 
 def get_src(img, patch):
     src=[f for f in re.findall(r'diff --git a/(\S+) b/',patch) if 'test' not in f.lower()][:2]

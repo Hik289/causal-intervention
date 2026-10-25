@@ -1,3 +1,4 @@
+from civic.services import review_score_path
 from civic.paths import OUTPUT_DIR
 pass
 
@@ -17,7 +18,7 @@ def split_of(repo):
 
 def load():
     d=defaultdict(lambda: defaultdict(list)); repo={}
-    for l in open(f"{PRE}/scores_reviewergen_claude.jsonl"):
+    for l in open(review_score_path(PRE)):
         r=json.loads(l)
         if r.get("score") is None: continue
         d[r["triple_id"]][r["version"]].append(r["score"]); repo[r["triple_id"]]=r.get("repo","")
@@ -102,7 +103,7 @@ def main():
             print(f"  {rung} seed{seed}: SpecRatio={r['spec_ratio']:.3f} AUROC(Δt,Δu)={r['auroc_dt_vs_du']:.3f}",flush=True)
         res[rung]={k:[round(float(np.mean(v)),4),round(float(np.std(v)),4)] for k,v in acc.items()}
         print(f"{rung}:",res[rung],flush=True)
-    res["note"]=("FAIR E5: upper layer trained ON LLM intervention battery features (s(x),s(Ic),s(Icp),Δ), NOT MiniLM. "
+    res["note"]=("FAIR E5: upper layer trained ON LLM intervention battery features (s(x),s(Ic),s(Icp),Δ), using reviewer-response features. "
                  "vs raw-scalar. verdict: B-Full > raw on SpecRatio/AUROC & drops without L_spec → (a); else (b).")
     json.dump(res,open(args.out,"w"),indent=2)
     print("WROTE score_battery_specificity_results.json",flush=True)

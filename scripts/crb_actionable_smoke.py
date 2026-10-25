@@ -1,10 +1,10 @@
+from civic.services import chat_client, review_model
 pass
 
 import os, sys, json, re, urllib.request, difflib, time, statistics as st
 import pandas as pd
-from openai import OpenAI
-client=OpenAI(base_url=os.environ["OPENAI_BASE_URL"], api_key=os.environ["OPENAI_API_KEY"], max_retries=6)
-MODEL=os.environ.get("LLM_MODEL_NAME", "gpt-4")
+client=chat_client()
+MODEL=review_model()
 DATA=os.environ.get("CIVIC_PROJECT_ROOT", ".") + "/data"
 CRISP={"bug","performance","security"}
 
@@ -19,7 +19,7 @@ def fetch_lines(repo,sha,path,line,win=20):
     return "\n".join(c[:2*win])
 
 def sol(msg):
-    r=client.chat.completions.create(model=MODEL,messages=[{"role":"user","content":msg}],timeout=150)
+    r=client.chat.completions.create(model=MODEL, messages=[{'role': 'user', 'content': msg}])
     return r.choices[0].message.content
 
 def locate_gen(region, note):
