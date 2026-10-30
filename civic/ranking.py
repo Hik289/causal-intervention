@@ -11,7 +11,7 @@ class InterventionRanker(nn.Module):
 
 
 class InterventionModule(nn.Module):
-    """Rank frozen candidate modifications conditioned on a critique representation."""
+
 
     def __init__(self, context_dim, code_dim, hidden=128, temperature=1.0):
         super().__init__()
@@ -55,15 +55,18 @@ class InterventionModule(nn.Module):
 
 
 def select_critiques(probabilities, similarity=None, critique_features=None,
-                    method="exact", exact_limit=18, max_findings=None):
-    """Optimize review utility exactly for small sets, or explicitly request greedy selection.
+                    method="exact", exact_limit=18, max_findings=None,
+                    lambda_size=0.0, lambda_red=1.0):
 
-    The discrete decision is detached; the returned utility retains gradients with
-    respect to the selected probabilities and similarities. Automatic mode reports
-    whether the exact or greedy algorithm was used.
-    """
+
+
+
+
+
     if probabilities.ndim != 1 or not torch.isfinite(probabilities).all():
         raise ValueError("probabilities must be a finite one-dimensional tensor")
+    if not torch.isfinite(torch.tensor([lambda_size, lambda_red])).all() or min(lambda_size, lambda_red) < 0:
+        raise ValueError("Selection size and redundancy costs must be finite and nonnegative")
     if ((probabilities < 0) | (probabilities > 1)).any():
         raise ValueError("probabilities must lie in [0, 1]")
     count = probabilities.numel()
@@ -94,8 +97,8 @@ def select_critiques(probabilities, similarity=None, critique_features=None,
         raise ValueError("method must be 'exact', 'greedy', or 'auto'")
     if method == "exact" and count > exact_limit:
         raise ValueError("Exact selection exceeds exact_limit; explicitly request greedy or auto selection")
-    scores = probabilities.detach().cpu().tolist()
-    penalties = similarity.detach().cpu().tolist()
+    scores = (probabilities.detach() - lambda_size).cpu().tolist()
+    penalties = (lambda_red * similarity.detach()).cpu().tolist()
     if method == "greedy":
         selected = []
         remaining = set(range(count))
@@ -111,7 +114,7 @@ def select_critiques(probabilities, similarity=None, critique_features=None,
         best = 0.0
         suffix = [0.0] * (count + 1)
         for index in range(count - 1, -1, -1):
-            suffix[index] = suffix[index + 1] + scores[index]
+            suffix[index] = suffix[index + 1] + max(0.0, scores[index])
 
         def search(index, current, value):
             nonlocal selected, best
@@ -131,5 +134,5 @@ def select_critiques(probabilities, similarity=None, critique_features=None,
     mask = torch.zeros(count, device=probabilities.device, dtype=torch.bool)
     mask[indices] = True
     pair_mask = torch.triu(mask.unsqueeze(1) & mask.unsqueeze(0), diagonal=1)
-    utility = probabilities[mask].sum() - similarity[pair_mask].sum()
+    utility = probabilities[mask].sum() - lambda_red * similarity[pair_mask].sum() - lambda_size * mask.sum()
     return {"indices": indices, "mask": mask, "utility": utility, "method": method}
