@@ -47,6 +47,7 @@ def test_adaptation_keeps_real_metric_weights_and_validation_thresholds(tmp_path
     assert read('module_gradient_audit.json')['passed']
     assert read('manifest.json')['module_learning_rates'] == dict(theta=.00001, phi=.00003, psi=.001)
     assert read('threshold_locked.json')['source'] == 'validation_f1_only'
+    assert set(read('metric_best.json')['observed_control_pairs']) == {'pair_accuracy', 'pair_auroc'}
     for policy, metrics in read('metric_best.json').items():
         for metric, entry in metrics.items():
             saved = load_checkpoint(output / entry['checkpoint'], 'cpu')

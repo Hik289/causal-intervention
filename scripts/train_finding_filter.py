@@ -268,6 +268,21 @@ def train(args):
                             "metrics": m, "test_ids_sha256": test_ids_sha,
                             "test_selection_is_exploratory": True}
                         improved = True
+            paired = exploratory.get("paired")
+            if paired is not None:
+                best = dense_best.setdefault("observed_control_pairs", {})
+                for name in ("pair_accuracy", "pair_auroc"):
+                    value = paired[name]
+                    if name not in best or value > best[name]["value"]:
+                        best[name] = {"value": value, "direction": "max", "epoch": epoch,
+                            "checkpoint": "metric_best_weights/epoch_%04d.pt" % epoch,
+                            "test_predictions": str(test_path.relative_to(args.output)),
+                            "validation_predictions": str(val_path.relative_to(args.output)),
+                            "threshold_policy": "observed_control_pairs",
+                            "threshold_selection": {"threshold": 0.0, "selection_split": "fixed"},
+                            "metrics": paired, "test_ids_sha256": test_ids_sha,
+                            "test_selection_is_exploratory": True}
+                        improved = True
             if language_array is not None:
                 test_languages = language_array[prediction["indices"]]
                 populations = {name: test_languages == name for name in np.unique(test_languages)}
