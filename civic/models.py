@@ -138,11 +138,12 @@ class CritiqueModule(nn.Module):
 class VerifierModule(nn.Module):
 
 
-    def __init__(self, hidden=128):
+    def __init__(self, hidden=128, condition_on_reviewer=False):
         super().__init__()
+        self.condition_on_reviewer = condition_on_reviewer
         self.response_encoder = nn.Sequential(nn.Linear(6, hidden), nn.GELU())
         self.network = nn.Sequential(
-            nn.Linear(7 + hidden * 2, hidden), nn.GELU(),
+            nn.Linear(7 + hidden * 2 + 2 * int(condition_on_reviewer), hidden), nn.GELU(),
             nn.Linear(hidden, hidden), nn.GELU(),
         )
         self.validity_head = nn.Linear(hidden, 1)
@@ -180,15 +181,21 @@ class VerifierModule(nn.Module):
         pooled_context = (encoded * mask.unsqueeze(-1)).sum(1) / mask.sum(1, keepdim=True).clamp_min(1)
         inputs = torch.cat((original_score.unsqueeze(-1), selected_responses, selected_flags,
                             selected_context, pooled_context), dim=-1)
+        if frozen_reviewer_logit is not None:
+            if frozen_reviewer_logit.shape != original_score.shape or frozen_reviewer_logit.requires_grad:
+                raise ValueError("frozen_reviewer_logit must be a frozen [batch] tensor")
+            if not torch.isfinite(frozen_reviewer_logit).all():
+                raise ValueError("frozen_reviewer_logit must be finite")
+        if self.condition_on_reviewer:
+            if frozen_reviewer_logit is None:
+                raise ValueError("Reviewer-conditioned verification requires actual frozen reviewer logits")
+            inputs = torch.cat((inputs, frozen_reviewer_logit[:, None],
+                                torch.sigmoid(frozen_reviewer_logit)[:, None]), dim=-1)
         hidden = self.network(inputs)
         correction = self.validity_head(hidden).squeeze(-1)
         if frozen_reviewer_logit is None:
             logits = correction
         else:
-            if frozen_reviewer_logit.shape != original_score.shape or frozen_reviewer_logit.requires_grad:
-                raise ValueError("frozen_reviewer_logit must be a frozen [batch] tensor")
-            if not torch.isfinite(frozen_reviewer_logit).all():
-                raise ValueError("frozen_reviewer_logit must be finite")
             logits = frozen_reviewer_logit + correction
         gate_logits = logits + self.selection_head(hidden).squeeze(-1)
         return {
@@ -212,7 +219,7 @@ class CIVER(nn.Module):
 
     def __init__(self, code_dim, critique_dim, paired_dim=None, hidden=128,
                  layers=2, heads=4, dropout=0.1, rank_hidden=128,
-                 verifier_hidden=128, temperature=1.0):
+                 verifier_hidden=128, temperature=1.0, condition_on_reviewer=False):
         super().__init__()
         from .ranking import InterventionModule
         self.code_dim = code_dim
@@ -220,7 +227,7 @@ class CIVER(nn.Module):
         self.critique = CritiqueModule(code_dim, critique_dim, paired_dim,
                                       hidden, layers, heads, dropout)
         self.intervention = InterventionModule(hidden, code_dim, rank_hidden, temperature)
-        self.verifier = VerifierModule(verifier_hidden)
+        self.verifier = VerifierModule(verifier_hidden, condition_on_reviewer)
 
     @staticmethod
     def _repeat(features, count):

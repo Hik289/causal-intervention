@@ -67,6 +67,8 @@ The trainer can balance classification and intervention discrimination with a jo
 
 `python -m scripts.train_finding_filter --help` exposes reviewer-anchored adaptation of the complete three-module model. It supports separate module learning rates, explicit dropout-only checkpoint transfer, residual regularization, class-balanced supervision, and training-only ordering losses. The frozen reviewer score must be available for every finding. Supply real PR identifiers in the feature archive or an explicit case-to-PR mapping so workload metrics retain the full PR denominator.
 
+An optional confidence input lets the verifier condition its learned correction on the frozen reviewer score. Explicit checkpoint expansion initializes the added connections to zero; earlier configurations retain their original behavior.
+
 Decision thresholds are calibrated on validation data. Fixed-recall evaluation uses a held-out score curve and is recorded separately from deployment thresholds. Each exploratory metric winner retains its actual weights, predictions, epoch, and source hashes; different metrics may select different epochs. These test-selected diagnostics never replace the validation-selected checkpoint or the original validation references.
 
 ## Data interface

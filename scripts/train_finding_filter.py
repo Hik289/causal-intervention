@@ -17,6 +17,29 @@ from scripts.train_full import (FullDataset, load_checkpoint, save_json, sha256,
                                 module_gradient_audit)
 
 
+def initialize_filter(model, config, pretrained, allow_dropout_transfer=False,
+                      allow_reviewer_feature_transfer=False):
+    previous = dict(pretrained['config'])
+    previous.setdefault('condition_on_reviewer', False)
+    differences = {key for key in config if previous.get(key) != config[key]}
+    permitted = set()
+    if allow_dropout_transfer:
+        permitted.add('dropout')
+    if allow_reviewer_feature_transfer and config['condition_on_reviewer'] and not previous['condition_on_reviewer']:
+        permitted.add('condition_on_reviewer')
+    if differences - permitted:
+        raise ValueError('Checkpoint configuration changes require explicit, compatible transfer options')
+    state = dict(pretrained['model'])
+    if 'condition_on_reviewer' in differences:
+        key = 'verifier.network.0.weight'
+        expected = model.state_dict()[key]
+        original = state[key]
+        if expected.shape != (original.shape[0], original.shape[1] + 2):
+            raise ValueError('Reviewer feature transfer requires exactly two added input columns')
+        state[key] = torch.cat((original, original.new_zeros((original.shape[0], 2))), dim=1)
+    model.load_state_dict(state)
+
+
 def train(args):
     random.seed(args.seed)
     np.random.seed(args.seed)
@@ -67,14 +90,13 @@ def train(args):
     config = {"code_dim": dataset.code_dim, "critique_dim": dataset.critique_dim,
               "paired_dim": dataset.paired_dim, "hidden": args.hidden, "layers": args.layers,
               "heads": args.heads, "dropout": args.dropout, "rank_hidden": args.rank_hidden,
-              "verifier_hidden": args.verifier_hidden, "temperature": args.temperature}
+              "verifier_hidden": args.verifier_hidden, "temperature": args.temperature,
+              "condition_on_reviewer": args.condition_on_reviewer}
     model = CIVER(**config).to(device)
     if args.initialize_from:
         pretrained = load_checkpoint(args.initialize_from, device)
-        transfer_differences = {key for key in config if pretrained["config"].get(key) != config[key]}
-        if transfer_differences and not (args.allow_dropout_transfer and transfer_differences == {"dropout"}):
-            raise ValueError("Only an explicitly registered dropout-only transfer may change the checkpoint configuration")
-        model.load_state_dict(pretrained["model"])
+        initialize_filter(model, config, pretrained, args.allow_dropout_transfer,
+                          args.allow_reviewer_feature_transfer)
     if "frozen_reviewer_logit" not in dataset.tensors:
         raise ValueError("Anchored scope requires every row to have a real frozen reviewer score")
     with torch.no_grad():
@@ -91,6 +113,7 @@ def train(args):
                 "total_parameters": sum(module_counts.values()),
                 "module_learning_rates": {group["name"]: group["lr"] for group in optimizer.param_groups},
                 "dropout_only_transfer": bool(args.allow_dropout_transfer),
+                "reviewer_feature_transfer": bool(args.allow_reviewer_feature_transfer),
                 "initialization_sha256": sha256(args.initialize_from) if args.initialize_from else None,
                 "primary_selection": "validation_" + args.primary_metric + "_then_other_validation_metric_then_bce_then_earliest_epoch",
                 "test_selection": "exploratory_only_never_used_for_optimizer_hyperparameters_or_primary_checkpoint",
@@ -409,6 +432,8 @@ def parse_args(argv=None):
     for module_name in ("theta", "phi", "psi"):
         parser.add_argument("--lr-" + module_name, type=float, default=None)
     parser.add_argument("--allow-dropout-transfer", action="store_true")
+    parser.add_argument("--condition-on-reviewer", action="store_true")
+    parser.add_argument("--allow-reviewer-feature-transfer", action="store_true")
     parser.add_argument("--weight-decay", type=float, default=1e-4)
     parser.add_argument("--residual-penalty", type=float, default=0.1)
     parser.add_argument("--hidden", type=int, default=512)

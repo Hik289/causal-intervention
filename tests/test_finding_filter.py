@@ -1,10 +1,11 @@
 import json
 
 import numpy as np
+import pytest
 import torch
 
 from civic.models import CIVER
-from scripts.train_finding_filter import parse_args, train
+from scripts.train_finding_filter import initialize_filter, parse_args, train
 from scripts.train_full import load_checkpoint
 
 
@@ -59,3 +60,29 @@ def test_adaptation_keeps_real_metric_weights_and_validation_thresholds(tmp_path
                 assert entry['threshold_selection']['not_a_deployment_threshold']
             else:
                 assert entry['threshold_selection']['selection_split'] in ('fixed', 'validation')
+
+
+def test_reviewer_conditioning_transfer_starts_with_the_same_function():
+    torch.manual_seed(11)
+    config = dict(code_dim=6, critique_dim=6, paired_dim=6, hidden=16,
+                  layers=1, heads=2, dropout=0., rank_hidden=12,
+                  verifier_hidden=12, temperature=1.)
+    original = CIVER(**config).eval()
+    expanded_config = dict(config, condition_on_reviewer=True)
+    expanded = CIVER(**expanded_config).eval()
+    state = {'config': config, 'model': original.state_dict()}
+    with pytest.raises(ValueError, match='explicit'):
+        initialize_filter(expanded, expanded_config, state)
+    initialize_filter(expanded, expanded_config, state, allow_reviewer_feature_transfer=True)
+    inputs = dict(original=torch.randn(3, 6), critique=torch.randn(3, 6),
+                  candidates=torch.randn(3, 2, 6), unrelated=torch.randn(3, 2, 6),
+                  transformed=torch.randn(3, 2, 6), pair_original=torch.randn(3, 6),
+                  pair_candidates=torch.randn(3, 2, 6), pair_unrelated=torch.randn(3, 2, 6),
+                  pair_transformed=torch.randn(3, 2, 6), frozen_reviewer_logit=torch.randn(3))
+    first, second = original(**inputs), expanded(**inputs)
+    for name in ('validity_logits', 'selection_logits', 'original_score', 'ranking_logits'):
+        assert torch.allclose(first[name], second[name], atol=1e-6, rtol=1e-6)
+    second['validity_logits'].sum().backward()
+    assert expanded.verifier.network[0].weight.grad[:, -2:].abs().sum() > 0
+    with pytest.raises(ValueError, match='actual frozen reviewer'):
+        expanded(**dict(inputs, frozen_reviewer_logit=None))
