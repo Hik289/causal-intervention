@@ -138,9 +138,12 @@ class CritiqueModule(nn.Module):
 class VerifierModule(nn.Module):
 
 
-    def __init__(self, hidden=128, condition_on_reviewer=False):
+    def __init__(self, hidden=128, condition_on_reviewer=False, residual_logit_cap=None):
         super().__init__()
         self.condition_on_reviewer = condition_on_reviewer
+        if residual_logit_cap is not None and (not torch.isfinite(torch.tensor(residual_logit_cap)) or residual_logit_cap <= 0):
+            raise ValueError("Residual cap must be finite and positive")
+        self.residual_logit_cap = residual_logit_cap
         self.response_encoder = nn.Sequential(nn.Linear(6, hidden), nn.GELU())
         self.network = nn.Sequential(
             nn.Linear(7 + hidden * 2 + 2 * int(condition_on_reviewer), hidden), nn.GELU(),
@@ -152,7 +155,7 @@ class VerifierModule(nn.Module):
     def forward(self, original_score, target_scores, unrelated_scores,
                 transformed_scores, selection_weights, candidate_mask=None,
                 unrelated_available_mask=None, transformed_available_mask=None,
-                frozen_reviewer_logit=None):
+                frozen_reviewer_logit=None, target_available_mask=None):
         shape = target_scores.shape
         mask = torch.ones(shape, dtype=torch.bool, device=target_scores.device) \
             if candidate_mask is None else candidate_mask.bool()
@@ -168,7 +171,8 @@ class VerifierModule(nn.Module):
 
         unrel_mask = availability(unrelated_available_mask)
         eqv_mask = availability(transformed_available_mask)
-        available = torch.stack((mask, unrel_mask, eqv_mask), dim=-1)
+        target_mask = availability(target_available_mask)
+        available = torch.stack((target_mask, unrel_mask, eqv_mask), dim=-1)
         raw_responses = torch.stack((original_score.unsqueeze(1) - target_scores,
                                     original_score.unsqueeze(1) - unrelated_scores,
                                     original_score.unsqueeze(1) - transformed_scores), dim=-1)
@@ -192,7 +196,8 @@ class VerifierModule(nn.Module):
             inputs = torch.cat((inputs, frozen_reviewer_logit[:, None],
                                 torch.sigmoid(frozen_reviewer_logit)[:, None]), dim=-1)
         hidden = self.network(inputs)
-        correction = self.validity_head(hidden).squeeze(-1)
+        raw_correction = self.validity_head(hidden).squeeze(-1)
+        correction = raw_correction if self.residual_logit_cap is None else (2.0 * self.residual_logit_cap / torch.pi) * torch.atan(raw_correction)
         if frozen_reviewer_logit is None:
             logits = correction
         else:
@@ -200,7 +205,7 @@ class VerifierModule(nn.Module):
         gate_logits = logits + self.selection_head(hidden).squeeze(-1)
         return {
             "validity_logits": logits, "probability": torch.sigmoid(logits),
-            "residual_correction": correction,
+            "residual_correction": correction, "raw_residual_correction": raw_correction,
             "selection_logits": gate_logits, "selection_probability": torch.sigmoid(gate_logits),
             "target_response": selected_responses[:, 0],
             "unrelated_response": selected_responses[:, 1],
@@ -219,15 +224,17 @@ class CIVER(nn.Module):
 
     def __init__(self, code_dim, critique_dim, paired_dim=None, hidden=128,
                  layers=2, heads=4, dropout=0.1, rank_hidden=128,
-                 verifier_hidden=128, temperature=1.0, condition_on_reviewer=False):
+                 verifier_hidden=128, temperature=1.0, condition_on_reviewer=False,
+                 residual_logit_cap=None, use_measured_target_availability=False):
         super().__init__()
         from .ranking import InterventionModule
         self.code_dim = code_dim
         self.paired_dim = paired_dim
+        self.use_measured_target_availability = use_measured_target_availability
         self.critique = CritiqueModule(code_dim, critique_dim, paired_dim,
                                       hidden, layers, heads, dropout)
         self.intervention = InterventionModule(hidden, code_dim, rank_hidden, temperature)
-        self.verifier = VerifierModule(verifier_hidden, condition_on_reviewer)
+        self.verifier = VerifierModule(verifier_hidden, condition_on_reviewer, residual_logit_cap)
 
     @staticmethod
     def _repeat(features, count):
@@ -388,10 +395,15 @@ class CIVER(nn.Module):
         ranking = self.intervention(original_output["representation"], rank_features, cmask)
         unrel_scores = torch.zeros_like(target_output["score"]) if unrelated_output is None else unrelated_output["score"]
         eqv_scores = torch.zeros_like(target_output["score"]) if transformed_output is None else transformed_output["score"]
+        measured_available = None
+        if self.use_measured_target_availability:
+            if candidate_edit_costs is None or candidate_edit_cost_mask is None:
+                raise ValueError("Measured target availability requires actual edit costs and availability masks")
+            measured_available = cmask & candidate_edit_cost_mask.bool() & (candidate_edit_costs > 0)
         verification = self.verifier(
             original_output["score"], target_output["score"], unrel_scores, eqv_scores,
             ranking["selection_weights"], cmask, unrel_available, eqv_available,
-            frozen_reviewer_logit,
+            frozen_reviewer_logit, target_available_mask=measured_available,
         )
         if candidate_edit_costs is None:
             edit_distances = deltas.abs().sum(dim=-1)

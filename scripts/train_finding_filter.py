@@ -18,15 +18,21 @@ from scripts.train_full import (FullDataset, load_checkpoint, save_json, sha256,
 
 
 def initialize_filter(model, config, pretrained, allow_dropout_transfer=False,
-                      allow_reviewer_feature_transfer=False):
+                      allow_reviewer_feature_transfer=False, allow_bounded_residual_transfer=False, allow_measured_response_transfer=False):
     previous = dict(pretrained['config'])
     previous.setdefault('condition_on_reviewer', False)
+    previous.setdefault('residual_logit_cap', None)
+    previous.setdefault('use_measured_target_availability', False)
     differences = {key for key in config if previous.get(key) != config[key]}
     permitted = set()
     if allow_dropout_transfer:
         permitted.add('dropout')
     if allow_reviewer_feature_transfer and config['condition_on_reviewer'] and not previous['condition_on_reviewer']:
         permitted.add('condition_on_reviewer')
+    if allow_bounded_residual_transfer and previous.get('residual_logit_cap') is None and config.get('residual_logit_cap') is not None:
+        permitted.add('residual_logit_cap')
+    if allow_measured_response_transfer and not previous['use_measured_target_availability'] and config.get('use_measured_target_availability'):
+        permitted.add('use_measured_target_availability')
     if differences - permitted:
         raise ValueError('Checkpoint configuration changes require explicit, compatible transfer options')
     state = dict(pretrained['model'])
@@ -38,6 +44,17 @@ def initialize_filter(model, config, pretrained, allow_dropout_transfer=False,
             raise ValueError('Reviewer feature transfer requires exactly two added input columns')
         state[key] = torch.cat((original, original.new_zeros((original.shape[0], 2))), dim=1)
     model.load_state_dict(state)
+
+
+def confidence_tie_rank_loss(raw_scores, frozen_prior, labels):
+    terms = []
+    for value in torch.unique(frozen_prior):
+        mask = frozen_prior == value
+        positive = raw_scores[mask & (labels > .5)]
+        negative = raw_scores[mask & (labels <= .5)]
+        if len(positive) and len(negative):
+            terms.append(F.softplus(-(positive[:, None] - negative[None, :])).mean())
+    return torch.stack(terms).mean() if terms else raw_scores.sum() * 0.0
 
 
 def train(args):
@@ -91,12 +108,14 @@ def train(args):
               "paired_dim": dataset.paired_dim, "hidden": args.hidden, "layers": args.layers,
               "heads": args.heads, "dropout": args.dropout, "rank_hidden": args.rank_hidden,
               "verifier_hidden": args.verifier_hidden, "temperature": args.temperature,
-              "condition_on_reviewer": args.condition_on_reviewer}
+              "condition_on_reviewer": args.condition_on_reviewer, "residual_logit_cap": args.residual_logit_cap,
+              "use_measured_target_availability": args.use_measured_target_availability}
     model = CIVER(**config).to(device)
     if args.initialize_from:
         pretrained = load_checkpoint(args.initialize_from, device)
         initialize_filter(model, config, pretrained, args.allow_dropout_transfer,
-                          args.allow_reviewer_feature_transfer)
+                          args.allow_reviewer_feature_transfer, args.allow_bounded_residual_transfer,
+                          args.use_measured_target_availability)
     if "frozen_reviewer_logit" not in dataset.tensors:
         raise ValueError("Anchored scope requires every row to have a real frozen reviewer score")
     with torch.no_grad():
@@ -213,11 +232,15 @@ def train(args):
                 auc_aux = output["validity_logits"].sum() * 0.0
             losses["classification_auc_auxiliary"] = args.pairwise_auc_weight * auc_aux
             losses["total"] = losses["total"] + losses["classification_auc_auxiliary"]
+            tied_ranking = confidence_tie_rank_loss(output['raw_residual_correction'], batch['frozen_reviewer_logit'], batch['labels'])
+            losses['confidence_tie_ranking'] = args.confidence_tie_weight * tied_ranking
+            losses['raw_correction_regularizer'] = args.raw_correction_penalty * output['raw_residual_correction'].square().mean()
+            losses['total'] = losses['total'] + losses['confidence_tie_ranking'] + losses['raw_correction_regularizer']
             if not all(torch.isfinite(value) for value in losses.values()):
                 raise FloatingPointError("Nonfinite joint objective")
             losses["total"].backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
-            if epoch == 1:
+            if epoch <= 2:
                 last_gradient = module_gradient_audit(model)
                 for name, value in last_gradient.items():
                     all_gradient_totals[name] += value["gradient_l1"]
@@ -225,7 +248,7 @@ def train(args):
             seen += len(indices)
             for key, value in losses.items():
                 totals[key] = totals.get(key, 0.0) + float(value.detach().cpu()) * len(indices)
-        if epoch == 1:
+        if epoch == 2:
             if not all(all_gradient_totals[name] > 0 for name in args.required_modules):
                 raise RuntimeError("At least one trainable module received no gradient")
             save_json(args.output / "module_gradient_audit.json", {"passed": True, "totals": all_gradient_totals,
@@ -305,6 +328,31 @@ def train(args):
                             "threshold_selection": {"threshold": 0.0, "selection_split": "fixed"},
                             "metrics": paired, "test_ids_sha256": test_ids_sha,
                             "test_selection_is_exploratory": True}
+                        improved = True
+            cost_values = dataset.tensors['candidate_edit_costs'][prediction['indices']].numpy()
+            actions = np.argmax(prediction['ranking_scores'], axis=1)
+            chosen_cost = cost_values[np.arange(len(actions)), actions]
+            positive = prediction['labels'] > .5
+            positive_changed = int(np.sum((chosen_cost > 0) & positive))
+            if positive_changed > 0:
+                edit_best = dense_best.setdefault('descriptive_edits', {})
+                for name, mask, direction in [('real_edit', positive, 'max'), ('fp_edit', ~positive, 'min')]:
+                    value = float(chosen_cost[mask].mean())
+                    old = edit_best.get(name)
+                    is_better = old is None or (value > old['value'] if direction == 'max' else value < old['value'])
+                    if is_better:
+                        edit_best[name] = {'value': value, 'direction': direction, 'epoch': epoch,
+                            'checkpoint': 'metric_best_weights/epoch_%04d.pt' % epoch,
+                            'test_predictions': str(test_path.relative_to(args.output)),
+                            'validation_predictions': str(val_path.relative_to(args.output)),
+                            'threshold_policy': 'model_argmax_action_descriptive',
+                            'threshold_selection': {'selection_split': 'fixed_model_argmax'},
+                            'test_ids_sha256': test_ids_sha,
+                            'positive_changed_n': positive_changed, 'positive_n': int(positive.sum()),
+                            'negative_n': int((~positive).sum()), 'actions': actions.tolist(),
+                            'changed_lines': chosen_cost.tolist(), 'not_repair_success': True,
+                            'not_repair_quality': True, 'all_identity_excluded': True,
+                            'test_selection_is_exploratory': True}
                         improved = True
             if language_array is not None:
                 test_languages = language_array[prediction["indices"]]
@@ -433,6 +481,11 @@ def parse_args(argv=None):
         parser.add_argument("--lr-" + module_name, type=float, default=None)
     parser.add_argument("--allow-dropout-transfer", action="store_true")
     parser.add_argument("--condition-on-reviewer", action="store_true")
+    parser.add_argument("--residual-logit-cap", type=float)
+    parser.add_argument("--use-measured-target-availability", action="store_true")
+    parser.add_argument("--allow-bounded-residual-transfer", action="store_true")
+    parser.add_argument("--confidence-tie-weight", type=float, default=0.0)
+    parser.add_argument("--raw-correction-penalty", type=float, default=0.0)
     parser.add_argument("--allow-reviewer-feature-transfer", action="store_true")
     parser.add_argument("--weight-decay", type=float, default=1e-4)
     parser.add_argument("--residual-penalty", type=float, default=0.1)

@@ -69,7 +69,11 @@ The trainer can balance classification and intervention discrimination with a jo
 
 An optional confidence input lets the verifier condition its learned correction on the frozen reviewer score. Explicit checkpoint expansion initializes the added connections to zero; earlier configurations retain their original behavior.
 
+Optional bounded corrections preserve sufficiently separated frozen-reviewer rankings. A training-only objective can resolve equal-confidence pairs without feeding labels into inference. Measured target availability distinguishes a nonempty edit from an identity action; identity remains an available selection action. These options are explicit in the model configuration and preserve earlier checkpoint behavior by default.
+
 Decision thresholds are calibrated on validation data. Fixed-recall evaluation uses a held-out score curve and is recorded separately from deployment thresholds. Each exploratory metric winner retains its actual weights, predictions, epoch, and source hashes; different metrics may select different epochs. These test-selected diagnostics never replace the validation-selected checkpoint or the original validation references.
+
+For a table that must use one checkpoint, `python -m scripts.select_table_checkpoint --help` provides a separate selection utility. Supply complete measured candidate rows, metric directions, and an explicit primary metric. It keeps the entire selected row together, rejects cells carrying a different epoch or weight hash, and can verify retained checkpoint bytes. Secondary metrics break primary-metric ties. Validation selection is the default; selecting on test results is explicitly recorded as exploratory. Cross-validation requires distinct fold models at a shared epoch and must be recorded as such, rather than described as one set of weights.
 
 ## Data interface
 

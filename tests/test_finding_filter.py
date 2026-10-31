@@ -58,6 +58,10 @@ def test_adaptation_keeps_real_metric_weights_and_validation_thresholds(tmp_path
                 assert entry['metrics']['recall'] >= .7
                 assert entry['threshold_selection']['evaluation_only']
                 assert entry['threshold_selection']['not_a_deployment_threshold']
+            elif policy == 'descriptive_edits':
+                assert entry['not_repair_success'] and entry['not_repair_quality']
+                assert entry['positive_changed_n'] > 0
+                assert entry['all_identity_excluded']
             else:
                 assert entry['threshold_selection']['selection_split'] in ('fixed', 'validation')
 
