@@ -137,6 +137,8 @@ The retrieval trainer starts from a checkpoint whose three modules have already 
 
 ## Verification
 
+Paired evaluation distinguishes score ordering from verdict changes. `pair_accuracy` measures whether the original score exceeds the repaired-state score; the historical `target_flip_rate` measures a score drop beyond its margin. `verdict_flip_metrics` reports `directional_verdict_flip_rate`: the fraction of all supplied matched pairs whose original score meets the decision threshold and whose repaired-state score falls below it. Use each method's validation-calibrated threshold for both states. Counts and the denominator are retained, and unrelated controls are not required to measure verdict changes. For transformations, `fp_rate_reduction` divides the decrease in false positives by all negative findings; the historical `fp_reduction` retains its relative-to-original-false-positives definition.
+
 ```bash
 python -m pytest -q
 ```

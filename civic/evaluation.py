@@ -135,6 +135,27 @@ def binary_metrics(labels, scores, threshold, pr_ids=None, all_pr_ids=None):
     }
 
 
+def verdict_flip_metrics(original_scores, target_scores, threshold):
+    original = _vector(original_scores, 'original_scores')
+    target = _vector(target_scores, 'target_scores')
+    if original.shape != target.shape:
+        raise ValueError('original_scores and target_scores must have the same shape')
+    threshold = _threshold(threshold)
+    accepted = original >= threshold
+    rejected = target < threshold
+    flips = accepted & rejected
+    return {
+        'n_pairs': len(original),
+        'n_original_accepted': int(accepted.sum()),
+        'n_target_rejected': int(rejected.sum()),
+        'n_directional_verdict_flips': int(flips.sum()),
+        'directional_verdict_flip_rate': float(flips.mean()),
+        'threshold': threshold,
+        'verdict_flip_comparison': 'original >= threshold and target < threshold',
+        'verdict_flip_denominator': 'all_supplied_matched_pairs',
+    }
+
+
 def paired_metrics(original_scores, target_scores, unrelated_scores, threshold,
                    flip_margin=0.0):
     original = _vector(original_scores, 'original_scores')
@@ -156,8 +177,10 @@ def paired_metrics(original_scores, target_scores, unrelated_scores, threshold,
     unrelated_drop = original[:, None] - unrelated
     labels = np.r_[np.ones(len(target_drop)), np.zeros(unrelated_drop.size)]
     effects = np.r_[target_drop, unrelated_drop.ravel()]
+    verdicts = verdict_flip_metrics(original, target, threshold)
     return {
-        'n_pairs': len(original), 'n_unrelated': unrelated_drop.size,
+        **verdicts,
+        'n_unrelated': unrelated_drop.size,
         'pair_accuracy': float(np.mean(original > target)),
         'pair_auroc': float(roc_auc_score(labels, effects)),
         'positive_recall': float(np.mean(original >= threshold)),
@@ -292,7 +315,7 @@ def transformation_metrics(labels, original_scores, transformed_scores, threshol
     if not evidence:
         undefined['evidence_exact'] = undefined['evidence_f1'] = 'gold support, model predictions, and independent maps are required'
     if not n_negative:
-        undefined['fp_change_rate'] = 'negative labels are required'
+        undefined['fp_change_rate'] = undefined['fp_rate_reduction'] = 'negative labels are required'
     if not initial_fp:
         undefined['fp_reduction'] = 'the original model surfaced no false positives'
     if classification['auroc'] is None:
@@ -309,6 +332,7 @@ def transformation_metrics(labels, original_scores, transformed_scores, threshol
         'n_evidence_evaluable': len(evidence) if evidence is not None else 0,
         'n_negative': n_negative, 'original_fp': initial_fp, 'transformed_fp': transformed_fp,
         'fp_change_rate': float(np.sum(negative & ~initial & changed) / n_negative) if n_negative else None,
+        'fp_rate_reduction': (initial_fp - transformed_fp) / n_negative if n_negative else None,
         'fp_reduction': (initial_fp - transformed_fp) / initial_fp if initial_fp else None,
         'undefined': undefined,
     }

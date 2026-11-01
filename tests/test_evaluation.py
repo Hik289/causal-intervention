@@ -5,7 +5,8 @@ import numpy as np
 import pytest
 
 from civic.evaluation import (binary_metrics, paired_metrics, retrieval_metrics,
-                              transformation_metrics, validation_threshold)
+                              transformation_metrics, validation_threshold,
+                              verdict_flip_metrics)
 from tools.fill_experiment_tables import render_tables
 
 
@@ -60,6 +61,51 @@ def test_paired_metrics_distinguish_order_from_joint_threshold_correctness():
     assert result['positive_recall'] == 1
     assert result['trap_rejection'] == 0
     assert result['n_unrelated'] == 4
+
+
+def test_directional_flips_require_crossing_the_decision_boundary():
+    original, target = [2, 0, -1, 2], [1, -1, -2, 0]
+    flips = verdict_flip_metrics(original, target, 0)
+    paired = paired_metrics(original, target, original, 0)
+    assert flips['directional_verdict_flip_rate'] == .25
+    assert flips['n_directional_verdict_flips'] == 1
+    assert flips['n_pairs'] == 4
+    assert flips['n_original_accepted'] == 3
+    assert flips['n_target_rejected'] == 2
+    assert flips['verdict_flip_denominator'] == 'all_supplied_matched_pairs'
+    assert paired['directional_verdict_flip_rate'] == flips['directional_verdict_flip_rate']
+    assert paired['joint_threshold_accuracy'] == .25
+    assert paired['pair_accuracy'] == paired['target_flip_rate'] == 1
+    assert verdict_flip_metrics([-1, 0], [1, 1], 0)['directional_verdict_flip_rate'] == 0
+
+
+@pytest.mark.parametrize('original,target,threshold', [
+    ([], [], 0), ([1], [0, 1], 0), ([np.nan], [0], 0),
+    ([1], [np.inf], 0), ([1], [0], np.nan),
+])
+def test_directional_flips_reject_missing_or_invalid_observations(original, target, threshold):
+    with pytest.raises(ValueError):
+        verdict_flip_metrics(original, target, threshold)
+
+
+def test_transformation_fp_rate_reduction_uses_all_negative_findings():
+    result = transformation_metrics([0, 0, 0, 0, 1], [1, 1, -1, -1, 2],
+                                    [-1, 1, -1, -1, 2], 0)
+    assert result['original_fp'] == 2
+    assert result['transformed_fp'] == 1
+    assert result['n_negative'] == 4
+    assert result['fp_rate_reduction'] == .25
+    assert result['fp_reduction'] == .5
+    worsened = transformation_metrics([0, 0, 0, 0, 1], [-1, 1, -1, -1, 2],
+                                      [1, 1, -1, -1, 2], 0)
+    assert worsened['fp_rate_reduction'] == -.25
+    assert worsened['fp_reduction'] == -1
+    no_initial_fp = transformation_metrics([1, 0], [1, -1], [1, -1], 0)
+    assert no_initial_fp['fp_rate_reduction'] == 0
+    assert no_initial_fp['fp_reduction'] is None
+    no_negatives = transformation_metrics([1, 1], [1, 1], [1, 1], 0)
+    assert no_negatives['fp_rate_reduction'] is None
+    assert 'fp_rate_reduction' in no_negatives['undefined']
 
 
 def test_retrieval_ties_match_exhaustive_random_permutations():
