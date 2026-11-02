@@ -6,6 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "civer"
 dynamic = ["version"]
 description = "Causal Intervention Verification for Reliable Code Review"
+license = {file = "LICENSE"}
 requires-python = ">=3.10"
 
 [project.optional-dependencies]

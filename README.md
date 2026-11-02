@@ -3,8 +3,10 @@
 <p align="center"><strong>Causal Intervention Verification for Reliable Code Review</strong></p>
 
 <p align="center">
+  <a href="https://arxiv.org/abs/2610.36010"><img src="https://img.shields.io/badge/arXiv-2610.36010-b31b1b" alt="arXiv:2610.36010"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&amp;logoColor=white" alt="Python 3.10+"></a>
   <a href="https://pytorch.org/"><img src="https://img.shields.io/badge/PyTorch-training-EE4C2C?logo=pytorch&amp;logoColor=white" alt="PyTorch"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green" alt="License: MIT"></a>
 </p>
 
 CIVER checks whether a code-review critique identifies a real defect by comparing its validity score across controlled program changes. Removing the claimed defect should lower the score, while unrelated edits and semantics-preserving transformations should leave it stable. Three jointly trained modules rank candidate interventions, score the same critique across program states, and combine these responses to verify critiques and select nonredundant findings.
@@ -144,3 +146,24 @@ python -m pytest -q
 ```
 
 The offline checks cover the training graph, module gradients, state inputs, candidate masks, exact subset selection, and validation-based checkpointing. They verify the implementation and do not regenerate benchmark scores.
+
+## License
+
+The code is released under the [MIT License](LICENSE).
+
+## Citation
+
+If you use CIVER in your research, please cite:
+
+```bibtex
+@misc{song2026civer,
+  title         = {{CIVER}: Causal Intervention Verification for Reliable Code Review},
+  author        = {Xinyuan Song and Hasibul Haque and Jay Somasundaram and Ryan Turner and Bowen Zhu and Liang Zhao},
+  year          = {2026},
+  eprint        = {2610.36010},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.SE},
+  doi           = {10.48550/arXiv.2610.36010},
+  url           = {https://arxiv.org/abs/2610.36010}
+}
+```
